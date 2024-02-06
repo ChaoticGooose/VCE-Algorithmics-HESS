@@ -1,0 +1,25 @@
+Begin sorting
+dictionary count = {pink, green, purple, orange, yellow, total} 
+While sweet in tub 
+Grab sweet 
+Check sweet color 
+If colour = pink 
+Then place the pink bucket
+Then Increment count[pink]  
+Else if colour = green 
+Then place in the green bucket
+Then Increment count[green] 
+Else if colour = purple 
+Then place in the purple bucket
+Then Increment count[purple] 
+Else if colour = orange 
+Then place in the orange bucket
+Then Increment count[orange] 
+Else if colour = yellow
+Then place in the yellow bucket
+Then Increment count[yellow]
+End if 
+Increment count[total]
+End sorting 
+
+5 Psudocode is only useful sometimes, otherwise a simple flowchart works better
