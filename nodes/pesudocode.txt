@@ -1,0 +1,33 @@
+Class Monkey
+{
+    name
+    bananas
+    status = bananas^2/100
+}
+
+Program GraphExample()
+{
+    number of monkeys = 5
+    tribe = new graph
+
+    // Create graph
+    for i = 1 to number of monkeys
+    {
+        node = new monkey(random name, random number < 100)
+        tribe.add(node)
+    }
+    // Create random edges
+    for i = 1 to number of monkeys
+    {
+        for j = 1+1 to number of monkeys
+        {
+            if random number < 0.5 // can adjust this to change the likelihood of an edge
+            {
+                weight = absulute value(monkey[i].number - monkey[j].number)
+                tribe.add_edge(monkey[i], monkey[j], weight)
+            }
+        }
+    }
+
+    Display Tribe Graph
+}
