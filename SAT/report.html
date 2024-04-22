@@ -1,0 +1,44 @@
+<h1>VSV VCE Algorithmics SAT U3</h1>
+<p>Task 1: <strong>Radius Repellent</strong><br>
+<sub>(The sanitation team must traverse every road within a given radius and spray it with Pangobat repellent in the shortest possible time.)</sub></p>
+<p>Task 2: <strong>Radius Vaccination</strong><br>
+<sub>The medical team must visit every town within a given radius and vaccinate everybody in the shortest possible time.</sub></p>
+<h3>Table of Contents</h3>
+<ol>
+<li><a href="#part-1-model-and-specification">Model and Specification</a></li>
+<li><a href="#part-2-design-your-algorithm">Design your Algorithm</a></li>
+<li><a href="#part-3-implementation">Implementation</a></li>
+<li><a href="#part-4-evaluation">Evaluation</a></li>
+</ol>
+<h2>0. Aim and Introduction</h2>
+<p>The following report outlines the design and implementation of two algorithms to address real-world problems faced by the Sanitation and Medical Teams in a fictional urban environment. The goal is to develop sutable algorithms to combat the spread of &quot;Pangobats&quot;, Making use of efficient algorithmic decsign to optimize the task.</p>
+<h2>Part 1: <strong>Model and Specification</strong></h2>
+<h3>1.1 Model</h3>
+<p>The Sanitation and Medical Teams are tasked with traversing a network of towns and roads to spray Pangobat repellent and administer vaccines to the residents. s. This network is visualized as a large connected graph, where towns are nodes and roads are edges. Each node contains essential information like location coordinates, population density, average income, and average age. The edges, which represent roads, are weighted based on the straight-line distance needed for travel. Multiple edges can stem from a single node, indicating multiple roads leading out of a town; all these edges are treated as undirected for simplicity. To accurately calculate distances between towns based on latitude and longitude coordinates, the <code>haversine()</code> function should be used to account for the curvature of the Earth. Node attrubutes like population density, average income, and average age are used to determine the priority of each town for vaccination or repellent spraying, they are available for retreival using <code>&lt;town&gt;.&lt;attribute-name&gt;</code>.</p>
+<p><img src="./map.png" alt="Graph Model"></p>
+<h3>1.2 Task Specification</h3>
+<p>The Sanitation and Medical Teams are tasked with two problems. To treverse each road within a given radius and spray it with Pangobat repellent in the shortest possible time, and to visit every town within a given radius and vaccinate everybody in the shortest possible time. These tasks are commonly known as Travelling Salesman Problems (TSP) and Chinese Postman Problems (CPP), respectively. These algorithms are designed to optimize the routes taken by the teams to minimize travel time and resource usage, They should be designed in this instance to also take into account relevent real world information provided.</p>
+<h3>1.3 Real World Considerations</h3>
+<p>The Sanitation and Medical Teams must consider several real-world factors when designing their algorithms. For the Sanitation Team, the repellent must be sprayed in a timely manner to prevent the spread oe Pangobats and should therefor make use of the <code>time</code> node attribute as well as <code>distance</code>. The algorithm must prioritize towns based on population density as outbreaks will be more common, income -- Low income towns are more at risk for outbreaks, and age -- The elderly are more at risk fot disease.</p>
+<h3>2. Radius Vaccination</h3>
+<p>This second task requires the Medical Team to visit every town within a given radius and vaccinate all residents. The problem is similar to the first, but with different constraints and objectives. This problem is of paramount importance in scenarios like mass vaccination campaigns, where timely and comprehensive coverage can significantly impact public health outcomes, similar to what was seen in the COVID pandemic. To model this real-world problem effectively, several key features need consideration.</p>
+<p>As with the first task, a Graph ADT will be used to represent the town network, with each town as a Node and each road as an Edge. Each node will include attributes like location coordinates, population density, average income and average age. The edges will contain data like distance and time required for traversal. This information is vital for route planning and resource allocation and provides the basis for optimising routes abd minimising travel time. Furthermore, the algorithm must account for the vaccination process itself. A priority queue ADT is introduced to manage the order of towns to be visited based on factors like population density, urgency of vaccination (derived from median age and income), and travel distances. This ensures that high-priority locations are addressed promptly, optimizing the overall vaccination schedule</p>
+<h3>3. ADT Signitures</h3>
+<ul>
+<li>Priority Queue<ul>
+<li><strong>enqueue</strong>: element, int -&gt; Priority Queue</li>
+<li><strong>dequeue</strong>: Priority Queue -&gt; element</li>
+<li><strong>isEmpty</strong>: Priority Queue -&gt; bool</li>
+</ul>
+</li>
+<li>Set<ul>
+<li><strong>add</strong>: element, Set -&gt; Set</li>
+<li><strong>remove</strong>: element, Set -&gt; Set</li>
+<li><strong>contains</strong>: element, Set -&gt; bool</li>
+<li><strong>length</strong>: Set -&gt; int</li>
+</ul>
+</li>
+</ul>
+<h2>Part 2: <strong>Design your Algorithm</strong></h2>
+<h2>Part 3: <strong>Implementation</strong></h2>
+<h2>Part 4: <strong>Evaluation</strong></h2>

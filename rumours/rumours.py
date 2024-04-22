@@ -2,7 +2,21 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import random
 
-random.seed(0)
+"""
+
+Recursive DFS example we were talking about on the discord server.
+
+"""
+def DFS(nodes, stack):
+    print(f"Stack: {[node.id for node in stack]}")
+    if len(stack) > 0:
+        current = stack.pop()
+        for neighbor in current.neighbors:
+            if neighbor.visited == False:
+                stack.append(neighbor)
+                neighbor.visited = True
+        return [current.id] + DFS(nodes, stack)
+    return []
 
 class Node:
     def __init__(self, id):
@@ -79,7 +93,6 @@ while len(stack) > 0:
     for neighbor in current.neighbors:
       #if neighbor.visited == False:
       stack.append(neighbor)
-
 print(f"Depth first search: {path}")
 
 # Set all nodes back to unvisited
@@ -103,4 +116,4 @@ while len(queue) > 0:
             visited.append(neighbor.id)
             neighbor.visited = True
 
-print(f"Depth first search: {visited}")
+print(f"Breadth first search: {visited}")
