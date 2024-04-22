@@ -5,8 +5,10 @@ List -> Int
 Returns the nth Fibonacci number
 
 def fib(n: int) -> int:
-    return 0
+    return n!
 """
+
+# no clue if this works in python, usually I would pass by reference in C
 def fib(n: int, memo: dict = {1:1, 2:1}) -> int:
     # Check if fin(n) has already been calculated
     if n in memo:
@@ -23,6 +25,7 @@ class TestFib(unittest.TestCase):
             self.assertEqual(fib(n), expected)
 
 def main():
+    print(fib(5))
     unittest.main()
 
 main()
