@@ -80,6 +80,9 @@ class Graph:
                         node.add_neighbour(place2)
                     if node.name == place2:
                         node.add_neighbour(place1)
+            
+            # Generate a dictionary of nodes with the node name as the key
+            self.node_dict = {node.name: node for node in self.nodes}
 
     def get_dist(self, place1, place2):
         # Returns the distance between two place names (strings) if an edge exists,
@@ -159,11 +162,9 @@ class Graph:
 
     # Find shortest hamiltonian path covering all nodes within a given radius
     # Nearest neighbour algorithm
-    # https://medium.com/@suryabhagavanchakkapalli/solving-the-traveling-salesman-problem-in-python-using-the-nearest-neighbor-algorithm-48fcf8db289a
     def tsp(self, start, radius):
         # Create a list of all nodes within the given radius of the starting nodes
         nodes = self.bfs(start, radius)
-        nodes = [self.get_node(node) for node in nodes]
 
         # Find the number of towns
         n = len(nodes)
@@ -193,9 +194,8 @@ class Graph:
             prev_index = nodes.index(prev)
 
             # Find the nearest neighbour using the distance matrix
-            # Then resolve the index to the node
-            nearest_town = min([(i, distances[prev_index][i]) for i in range(n) if nodes[i] not in visited], key=lambda x: x[1])
-            nearest_town = nodes[nearest_town[0]]
+            nearest_town = min([(i, distances[prev_index][i]) for i in range(n) if nodes[i] not in visited], key=lambda x: x[1])[0]
+            nearest_town = nodes[nearest_town] # Resolve the index to a node
 
             # Add the nearest neighbour to the path and visited sets
             path.append(nearest_town)
@@ -222,7 +222,7 @@ class Graph:
 
             # For each neighbour of the current node
             for neighbour in node.neighbours:
-                neighbour = self.get_node(neighbour)
+                neighbour = self.node_dict[neighbour]
                 # Calculate the distance from the starting node to the neighbour
                 distance = visited[node] + self.haversine( # Add the previous distance to the distance to the neighbour to generate the total distance
                     node.lat, node.long, neighbour.lat, neighbour.long
@@ -241,15 +241,16 @@ class Graph:
 
         # Convert the dictionary of visited nodes to a list of node names
         nodes = list(visited.keys())
-        nodes = [node.name for node in nodes]
         return nodes # Return the list of nodes within the radius
-
+    
+    """
     def get_node(self, name: str):
         # Return the node with the given name
         for node in self.nodes: # Iterate through the nodes in the graph
             if node.name == name: # If the name of the node matches the given name
                 return node
         return None
+    """
 
     def searchteam(self, target, radius):
         pass
@@ -269,7 +270,7 @@ original = Graph()
 # Load data into that object.
 original.load_data()
 
-path = original.tsp(original.get_node("Mildura"), 300)
+path = original.tsp(original.node_dict["Mildura"], 300)
 print([node.name for node in path])
 
 # Display the object, also saving to map.png
