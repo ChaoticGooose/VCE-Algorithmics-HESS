@@ -161,8 +161,47 @@ class Graph:
     # Nearest neighbour algorithm
     # https://medium.com/@suryabhagavanchakkapalli/solving-the-traveling-salesman-problem-in-python-using-the-nearest-neighbor-algorithm-48fcf8db289a
     def tsp(self, start, radius):
-        pass
+        # Create a list of all nodes within the given radius of the starting nodes
+        nodes = self.bfs(start, radius)
+        nodes = [self.get_node(node) for node in nodes]
 
+        # Find the number of towns
+        n = len(nodes)
+
+        # Create an n*n matrix to store distances between nodes
+        distances = np.zeros((n, n))
+
+        # Fill the matrix with the distances between nodes, None for the same node
+        for i in range(len(nodes)):
+            for j in range(len(nodes)):
+                if i == j:
+                    distances[i][j] = None
+                else:
+                    distances[i][j] = self.haversine(
+                        nodes[i].lat, nodes[i].long, nodes[j].lat, nodes[j].long
+                    )
+
+        # Create a list to store the path
+        path = [start]
+        # Create a list to store nodes visited
+        visited = [start] # Probably should be a set
+
+        while len(visited) < n:
+            prev = path[-1] # Get the previous node
+
+            # Get index of the previous node from nodes list
+            prev_index = nodes.index(prev)
+
+            # Find the nearest neighbour using the distance matrix
+            # Then resolve the index to the node
+            nearest_town = min([(i, distances[prev_index][i]) for i in range(n) if nodes[i] not in visited], key=lambda x: x[1])
+            nearest_town = nodes[nearest_town[0]]
+
+            # Add the nearest neighbour to the path and visited sets
+            path.append(nearest_town)
+            visited.append(nearest_town)
+        path.append(start) # Return to the starting node
+        return path
 
     """
         Create a list of nodes within a given radius of a starting node using a breadth-first search algorithm to traverse the graph.
@@ -185,7 +224,7 @@ class Graph:
             for neighbour in node.neighbours:
                 neighbour = self.get_node(neighbour)
                 # Calculate the distance from the starting node to the neighbour
-                distance = visited[node] + self.haversine(
+                distance = visited[node] + self.haversine( # Add the previous distance to the distance to the neighbour to generate the total distance
                     node.lat, node.long, neighbour.lat, neighbour.long
                 )
 
@@ -199,12 +238,11 @@ class Graph:
                     visited[neighbour] = distance
                     # Add the neighbour to the queue
                     queue.append(neighbour)
-        
+
         # Convert the dictionary of visited nodes to a list of node names
         nodes = list(visited.keys())
         nodes = [node.name for node in nodes]
         return nodes # Return the list of nodes within the radius
-
 
     def get_node(self, name: str):
         # Return the node with the given name
@@ -231,7 +269,8 @@ original = Graph()
 # Load data into that object.
 original.load_data()
 
-print(original.bfs(original.get_node("Mildura"), 300))
+path = original.tsp(original.get_node("Mildura"), 300)
+print([node.name for node in path])
 
 # Display the object, also saving to map.png
 # original.display("map.png")
