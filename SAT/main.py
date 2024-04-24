@@ -1,12 +1,9 @@
 import networkx as nx
-import numpy as np
+import numpy as np 
 import matplotlib.pyplot as plt
 import csv
 import random
 import math
-from itertools import permutations
-
-
 class Node:
     def __init__(self, name, pop, income, lat, long):
         # Name, latitude, longitude, population, weekly household income, default colour (1-5), empty list of neighbours
@@ -86,7 +83,7 @@ class Graph:
 
     def get_dist(self, place1, place2):
         # Returns the distance between two place names (strings) if an edge exists,
-        # otherwise returns -1.
+        # otherwise returns -1
 
         for edge in self.edges:
             if edge.place1 == place1 and edge.place2 == place2:
@@ -111,7 +108,7 @@ class Graph:
             edge_colours.append(self.colour_dict[edge.colour])
         node_positions = nx.get_node_attributes(G, "pos")
 
-        plt.figure(figsize=(10, 8))
+        plt.figure(figsize=(15, 10))
         nx.draw(
             G,
             node_positions,
@@ -162,46 +159,35 @@ class Graph:
 
     # Find shortest hamiltonian path covering all nodes within a given radius
     # Nearest neighbour algorithm
-    def tsp(self, start, radius):
-        # Create a list of all nodes within the given radius of the starting nodes
+    def tsp(self, start: Node, radius: int) -> list:
+        # Get list of nodes within the radius of the starting node
         nodes = self.bfs(start, radius)
 
-        # Find the number of towns
-        n = len(nodes)
-
-        # Create an n*n matrix to store distances between nodes
-        distances = np.zeros((n, n))
-
-        # Fill the matrix with the distances between nodes, None for the same node
-        for i in range(len(nodes)):
-            for j in range(len(nodes)):
-                if i == j:
-                    distances[i][j] = None
-                else:
-                    distances[i][j] = self.haversine(
-                        nodes[i].lat, nodes[i].long, nodes[j].lat, nodes[j].long
-                    )
-
-        # Create a list to store the path
+        # Create path list with the starting node
         path = [start]
-        # Create a list to store nodes visited
-        visited = [start] # Probably should be a set
+    
+        visited = set([start])
+        # Generate shortest hamiltonian path using the nearest neighbour algorithmk
+        while len(visited) < len(nodes):
+            # Get the last node in the path
+            current = path[-1]
+            # Get the neighbours of the current node
+            neighbours = current.neighbours
+            # Create a list of unvisited neighbours
+            unvisited = [self.node_dict[neighbour] for neighbour in neighbours if self.node_dict[neighbour] not in visited and self.node_dict[neighbour] in nodes]
+            # If there are no unvisited neighbours, break the loop
+            if not unvisited:
+                break
+            # Sort the unvisited neighbours by distance to the current node
+            unvisited.sort(key=lambda node: self.haversine(current.lat, current.long, node.lat, node.long))
+            # Add the closest neighbour to the path
+            path.append(unvisited[0])
+            visited.add(unvisited[0])
 
-        while len(visited) < n:
-            prev = path[-1] # Get the previous node
+        print([node.name for node in path])
 
-            # Get index of the previous node from nodes list
-            prev_index = nodes.index(prev)
 
-            # Find the nearest neighbour using the distance matrix
-            nearest_town = min([(i, distances[prev_index][i]) for i in range(n) if nodes[i] not in visited], key=lambda x: x[1])[0]
-            nearest_town = nodes[nearest_town] # Resolve the index to a node
-
-            # Add the nearest neighbour to the path and visited sets
-            path.append(nearest_town)
-            visited.append(nearest_town)
-        path.append(start) # Return to the starting node
-        return path
+        return
 
     """
         Create a list of nodes within a given radius of a starting node using a breadth-first search algorithm to traverse the graph.
@@ -224,13 +210,14 @@ class Graph:
             for neighbour in node.neighbours:
                 neighbour = self.node_dict[neighbour]
                 # Calculate the distance from the starting node to the neighbour
-                distance = visited[node] + self.haversine( # Add the previous distance to the distance to the neighbour to generate the total distance
-                    node.lat, node.long, neighbour.lat, neighbour.long
+                distance = self.haversine( # Add the previous distance to the distance to the neighbour to generate the total distance
+                    start.lat, start.long, neighbour.lat, neighbour.long
                 )
 
                 # If the distance is outside the radius, break the loop
                 if distance > radius:
-                    break
+                    print(neighbour.name, distance, radius)
+                    continue
 
                 # If the neighbour has not been visited or the new distance is less than the previous distance
                 if neighbour not in visited or distance < visited[neighbour]:
@@ -243,25 +230,6 @@ class Graph:
         nodes = list(visited.keys())
         return nodes # Return the list of nodes within the radius
     
-    """
-    def get_node(self, name: str):
-        # Return the node with the given name
-        for node in self.nodes: # Iterate through the nodes in the graph
-            if node.name == name: # If the name of the node matches the given name
-                return node
-        return None
-    """
-
-    def searchteam(self, target, radius):
-        pass
-
-    def vaccinate(self, target, radius):
-        pass
-
-    def findpath(self, target):
-        pass
-
-
 # These commands run the code.
 
 # Create a new graph object called 'original'
@@ -270,11 +238,10 @@ original = Graph()
 # Load data into that object.
 original.load_data()
 
-path = original.tsp(original.node_dict["Mildura"], 300)
-print([node.name for node in path])
+towns = original.tsp(original.node_dict["Warracknabeal"], 150)
 
 # Display the object, also saving to map.png
-# original.display("map.png")
+original.display("map.png")
 
 # You will add your own functions under the Graph object and call them in this way:
 # original.findpath("Alexandra")
