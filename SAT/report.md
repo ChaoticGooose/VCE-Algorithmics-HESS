@@ -51,6 +51,8 @@ The first step the algorithm must take is to determine the relevent towns within
 
 Then the algorithm must calculate the shortest Hamiltonian path that visits all towns in said list. To do this a number of approches can be taken, the simplest being a brute force approach, which calculates the distance of every possible path and returns the shortest. This is not optimal for even quite small datasets, as the number of possible paths grows factorially with the number of towns (ie 1, 2, 6, 24, 120, 720, 5040, 40320...) and this is simply not practically possible on large datasets even with the most powerful computers. A more optimal approach is to use a heuristic algorithm such as the Nearest Neighbour Algorithm, which starts at a random node and then moves to the nearest node, this is repeated until all nodes are visited. This is a simple and effective algorithm, although it is not always optimal, as it can ge stuck in local minima, where the algorithm gets stuck at the lowest point within a neighbourhood but is not neccaserrally the lowest point overall.
 
+### 2.2 Visiting all roads within a given radius ###
+Visiting every road within a given radius is a similar problem to the first, but with different constraints and objectives. This problem is commonly known as the Chinese Postman Problem (CPP), where the objective is to find the shortest possible route that visits every edge in a graph at least once. The problem is further complicated by the fact that the graph is non eulerian, meaning that not all nodes have an even degree. 
 
 
 

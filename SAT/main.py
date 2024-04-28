@@ -83,14 +83,14 @@ class Graph:
 
     def get_dist(self, place1, place2):
         # Returns the distance between two place names (strings) if an edge exists,
-        # otherwise returns -1
+        # otherwise returns infinity.
 
         for edge in self.edges:
             if edge.place1 == place1 and edge.place2 == place2:
                 return edge.dist
             if edge.place1 == place2 and edge.place2 == place1:
                 return edge.dist
-        return -1
+        return float("inf")
 
     def display(self, filename="map.png"):
         # Displays the object on screen and also saves it to a PNG named in the argument.
@@ -157,37 +157,115 @@ class Graph:
     # these names/parameters but they will probably steer you in the right
     # direction.
 
-    # Find shortest hamiltonian path covering all nodes within a given radius
-    # Nearest neighbour algorithm
-    def tsp(self, start: Node, radius: int) -> list:
-        # Get list of nodes within the radius of the starting node
+    # Find shortest path connecting all nodes in a given radius using floyd-warshall algorithm
+    def tsp(self, start, radius):
         nodes = self.bfs(start, radius)
+        n = len(nodes)
 
-        # Create path list with the starting node
-        path = [start]
+        print([node.name for node in nodes])
+        
+        # Create a distance matrix
+        dist = np.zeros((n, n))
+        Next = np.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                distance = self.get_dist(nodes[i].name, nodes[j].name)
+                dist[i][j] = distance
+                if distance == float("inf"):
+                    Next[i][j] = -1
+                else:
+                    Next[i][j] = j
+
+        # Floyd-Warshall algorithm
+        for k in range(n):
+            for i in range(n):
+                for j in range(n):
+                    if dist[i][j] > dist[i][k] + dist[k][j]:
+                        dist[i][j] = dist[i][k] + dist[k][j]
+                        Next[i][j] = Next[i][k]
+        
+        # Find the shortest path visiting all nodes, edges can be visited multiple times
+        def find_path(start_index: int, visited: set[int], path_length: float, path: list[int]) -> tuple[float, list[int]]:
+            if len(visited) == n:
+                return path_length, path + [start_index]
+            min_dist = float("inf")
+            min_path = []
+
+            for i in range(n):
+                if i not in visited:
+                    new_visited = visited.copy()    
+                    new_visited.add(i)
+                    new_dist, new_path = find_path(i, new_visited, path_length + dist[start_index][i], path + [start_index])
+                    if new_dist < min_dist:
+                        min_dist = new_dist
+                        min_path = new_path
+            return min_dist, min_path
+
+        min_dist = float("inf")
+        min_path = []
+
+        for i in range(n):
+            visited = set()
+            visited.add(i)
+            path_length, path = find_path(i, visited, 0, [])
+            if path_length < min_dist:
+                min_dist = path_length
+                min_path = path + [i]
+        
+        print(min_dist)
+        print([nodes[i].name for i in min_path])
+        return
+
     
-        visited = set([start])
-        # Generate shortest hamiltonian path using the nearest neighbour algorithmk
-        while len(visited) < len(nodes):
-            # Get the last node in the path
-            current = path[-1]
-            # Get the neighbours of the current node
-            neighbours = current.neighbours
-            # Create a list of unvisited neighbours
-            unvisited = [self.node_dict[neighbour] for neighbour in neighbours if self.node_dict[neighbour] not in visited and self.node_dict[neighbour] in nodes]
-            # If there are no unvisited neighbours, break the loop
-            if not unvisited:
-                break
-            # Sort the unvisited neighbours by distance to the current node
-            unvisited.sort(key=lambda node: self.haversine(current.lat, current.long, node.lat, node.long))
-            # Add the closest neighbour to the path
-            path.append(unvisited[0])
-            visited.add(unvisited[0])
+    def cpp(self, start, radius):
+        nodes = self.bfs(start, radius)
+        n = len(nodes)
 
-        print([node.name for node in path])
+        graph = self.create_subgraph(nodes)
 
+        # Find index of all nodes
+        node_index = {}
+        for node in nodes:
+            node_index[node] = len(node.neighbours)
+
+        # Check if graph is eulerian, semi-eulerian or not eulerian
+        odd_nodes = 0
+        for node in nodes:
+            if node_index[node] % 2 != 0:
+                odd_nodes += 1
+        if odd_nodes == 0:
+            print("Graph is Eulerian")
+        elif odd_nodes == 2:
+            print("Graph is Semi-Eulerian")
+        else:
+            print("Graph is not Eulerian")
+        
+
+
+
+
+
+
+            
 
         return
+
+    # Create a sub graph object only containing given nodes
+    def create_subgraph(self, nodes):
+        subgraph = Graph()
+        subgraph.nodes = nodes
+
+        # Get existing edges between nodes
+        for edge in self.edges:
+            if self.node_dict[edge.place1] in nodes and self.node_dict[edge.place2] in nodes:
+                subgraph.edges.append(edge)
+
+        subgraph.node_dict = {node.name: node for node in subgraph.nodes}
+
+
+        return subgraph
+
+
 
     """
         Create a list of nodes within a given radius of a starting node using a breadth-first search algorithm to traverse the graph.
@@ -216,7 +294,6 @@ class Graph:
 
                 # If the distance is outside the radius, break the loop
                 if distance > radius:
-                    print(neighbour.name, distance, radius)
                     continue
 
                 # If the neighbour has not been visited or the new distance is less than the previous distance
@@ -228,6 +305,7 @@ class Graph:
 
         # Convert the dictionary of visited nodes to a list of node names
         nodes = list(visited.keys())
+
         return nodes # Return the list of nodes within the radius
     
 # These commands run the code.
@@ -238,7 +316,7 @@ original = Graph()
 # Load data into that object.
 original.load_data()
 
-towns = original.tsp(original.node_dict["Warracknabeal"], 150)
+original.tsp(original.node_dict["Alexandra"], 100)
 
 # Display the object, also saving to map.png
 original.display("map.png")
