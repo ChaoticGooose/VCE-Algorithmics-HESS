@@ -1,6 +1,6 @@
 # VSV VCE Algorithmics SAT U3 #
-Task 1: **Radius Repellent**  
-<sub>(The sanitation team must traverse every road within a given radius and spray it with Pangobat repellent in the shortest possible time.)</sub>  
+Task 1: **Shortest Path**  
+<sub>The response force needs to be deployed from Bendigo to reach the target site as quickly as possible.</sub>
   
 Task 2: **Radius Vaccination**  
 <sub>The medical team must visit every town within a given radius and vaccinate everybody in the shortest possible time.</sub>  
@@ -16,7 +16,14 @@ The following report outlines the design and implementation of two algorithms to
 
 ## Part 1: **Model and Specification** ##
 ### 1.1 Model ###
-The Sanitation and Medical Teams are tasked with traversing a network of towns and roads to spray Pangobat repellent and administer vaccines to the residents. s. This network is visualized as a large connected graph, where towns are nodes and roads are edges. Each node contains essential information like location coordinates, population density, average income, and average age. The edges, which represent roads, are weighted based on the straight-line distance needed for travel. Multiple edges can stem from a single node, indicating multiple roads leading out of a town; all these edges are treated as undirected for simplicity. To accurately calculate distances between towns based on latitude and longitude coordinates, the `haversine()` function should be used to account for the curvature of the Earth. Node attrubutes like population density, average income, and average age are used to determine the priority of each town for vaccination or repellent spraying, they are available for retreival using `<town>.<attribute-name>`.
+The fictional "Pangobat" has been sighted in victoria, Given a map of the region, the Medical and Response team must complete two tasks in the most optimal time:
+
+1. **Shortest Path**: The Response Team must travel from Bendigo to the target site as quickly as possible, originating from Bendigo.
+2. **Radius Vaccination**: The Medical Team must visit every town within a given radius and vaccinate everybody in the shortest possible time.
+
+The map of the region is represented as a graph, with each town as a node and each road as an edge. This graph will be a weighted cyclic undirected graph, with each edge containing the time to traverse the road as the weight. Each node also contains attributes such as population, median household weekly income, average age, and 2D GPS coordinates. This infomation is vital to determining order of towns to visit and the shortest path to take, In this case Towns will be prioritised based on the median age (Towns with a higher median age will be prioritised), as the elderly may be at more risk of infection, and median income (Towns with a higher median income will be prioritised), as to secure a greater faith in the government thereby increasing donations. The 2D GPS coordinates will be used to calculate the distance between towns, as the Earth is not flat the distance between towns will be calculated using the Haversine formula. We have unfortunately not been provided with the third dimension of the towns (altitude) and therefor cannot calculate the distance between towns accurately, this will be ignored for the sake of simplicity.
+
+The Medical team only has one vehicle, and therefor can only visit one town at a time, This will mean that the towns must be visited in a specific path to ensure the shortest possible time taken to vaccinate all residents in the radius. It will also be assumed that the Medical team can vaccinate a town any size instantly and therefor will not be taken into account when calculating the path. The Roads taken will be assumed to have no traffic and therefor the time taken to travel between towns will be constant.
 
 ![Graph Model](./map.png)
 

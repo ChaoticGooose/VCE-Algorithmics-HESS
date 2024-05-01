@@ -166,24 +166,12 @@ class Graph:
         
         # Create a distance matrix
         dist = np.zeros((n, n))
-        Next = np.zeros((n, n))
         for i in range(n):
             for j in range(n):
                 distance = self.get_dist(nodes[i].name, nodes[j].name)
                 dist[i][j] = distance
-                if distance == float("inf"):
-                    Next[i][j] = -1
-                else:
-                    Next[i][j] = j
 
-        # Floyd-Warshall algorithm
-        for k in range(n):
-            for i in range(n):
-                for j in range(n):
-                    if dist[i][j] > dist[i][k] + dist[k][j]:
-                        dist[i][j] = dist[i][k] + dist[k][j]
-                        Next[i][j] = Next[i][k]
-        
+        # Check if graph is hamiltonian
         # Find the shortest path visiting all nodes, edges can be visited multiple times
         def find_path(start_index: int, visited: set[int], path_length: float, path: list[int]) -> tuple[float, list[int]]:
             if len(visited) == n:
@@ -216,7 +204,6 @@ class Graph:
         print([nodes[i].name for i in min_path])
         return
 
-    
     def cpp(self, start, radius):
         nodes = self.bfs(start, radius)
         n = len(nodes)
@@ -316,7 +303,7 @@ original = Graph()
 # Load data into that object.
 original.load_data()
 
-original.tsp(original.node_dict["Alexandra"], 100)
+original.shortest_path(original.node_dict["Alexandra"], 100)
 
 # Display the object, also saving to map.png
 original.display("map.png")
