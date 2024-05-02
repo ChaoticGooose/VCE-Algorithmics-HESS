@@ -1,9 +1,9 @@
 # VSV VCE Algorithmics SAT U3 #
-Task 1: **Shortest Path**  
+Task 1: **Shortest Path**
 <sub>The response force needs to be deployed from Bendigo to reach the target site as quickly as possible.</sub>
-  
-Task 2: **Radius Vaccination**  
-<sub>The medical team must visit every town within a given radius and vaccinate everybody in the shortest possible time.</sub>  
+
+Task 2: **Radius Vaccination**
+<sub>The medical team must visit every town within a given radius and vaccinate everybody in the shortest possible time.</sub>
 
 ### Table of Contents ###
 1. [Model and Specification](#part-1-model-and-specification)
@@ -28,13 +28,17 @@ The Medical team only has one vehicle, and therefor can only visit one town at a
 ![Graph Model](./map.png)
 
 ### 1.2 Task Specification ###
+The Medical and Response Teams have two tasks to complete with the given map of the region. The Response Team must find the shortest path between Bendigo and their given target site, whilst the Medical Team must visit every town within a given radius and vaccinate all residents. Thease tasks can be modeled with two diffrent types of algorithm, the first being a Shortest Path Problem and the second being a Travelling Salesman Problem.
+
+As the medical team only has one vehicle, The algorithm used to travel to each town cannot be parallelised and therefor one linked path must be taken. The Algorithm should find all the towns within the radius using the haversine formula to calculate the distance from the source node, To iterate over every node within said radius Breadth First Search will be used. It can be assumed that if the distance between all towns on a layer is greater that the radius then the algorithm can stop searching as no further towns will be within the radius. Once a list of relevent towns is obtained the algorithm must then find if the graph is hamiltonian, if it is not then the algorithm must find the shortest Hamiltonian path that visits all towns in the list. This can be done using a heuristic algorithm such as the Nearest Neighbour Algorithm, which starts at a random node and then moves to the nearest node, this is repeated until all nodes are visited, Then returns to the origin to create a hamiltonian cycle. This is a simple and effective algorithm, although it is not always optimal, as it can ge stuck in local minima, where the algorithm gets stuck at the lowest point within a neighbourhood but is not neccaserrally the lowest point overall. When the graph is not hamiltonian the algorithm must find a cycle where if the node only has one edge it is visited twice.
+
 The Sanitation and Medical Teams are tasked with two problems. To treverse each road within a given radius and spray it with Pangobat repellent in the shortest possible time, and to visit every town within a given radius and vaccinate everybody in the shortest possible time. These tasks are commonly known as Travelling Salesman Problems (TSP) and Chinese Postman Problems (CPP), respectively. These algorithms are designed to optimize the routes taken by the teams to minimize travel time and resource usage, They should be designed in this instance to also take into account relevent real world information provided.
 
 ### 1.3 Real World Considerations ###
 The Sanitation and Medical Teams must consider several real-world factors when designing their algorithms. For the Sanitation Team, the repellent must be sprayed in a timely manner to prevent the spread oe Pangobats and should therefor make use of the `time` node attribute as well as `distance`. The algorithm must prioritize towns based on population density as outbreaks will be more common, income -- Low income towns are more at risk for outbreaks, and age -- The elderly are more at risk fot disease.
 
 
-### 2. Radius Vaccination ### 
+### 2. Radius Vaccination ###
 This second task requires the Medical Team to visit every town within a given radius and vaccinate all residents. The problem is similar to the first, but with different constraints and objectives. This problem is of paramount importance in scenarios like mass vaccination campaigns, where timely and comprehensive coverage can significantly impact public health outcomes, similar to what was seen in the COVID pandemic. To model this real-world problem effectively, several key features need consideration.
 
 As with the first task, a Graph ADT will be used to represent the town network, with each town as a Node and each road as an Edge. Each node will include attributes like location coordinates, population density, average income and average age. The edges will contain data like distance and time required for traversal. This information is vital for route planning and resource allocation and provides the basis for optimising routes abd minimising travel time. Furthermore, the algorithm must account for the vaccination process itself. A priority queue ADT is introduced to manage the order of towns to be visited based on factors like population density, urgency of vaccination (derived from median age and income), and travel distances. This ensures that high-priority locations are addressed promptly, optimizing the overall vaccination schedule
@@ -59,7 +63,7 @@ The first step the algorithm must take is to determine the relevent towns within
 Then the algorithm must calculate the shortest Hamiltonian path that visits all towns in said list. To do this a number of approches can be taken, the simplest being a brute force approach, which calculates the distance of every possible path and returns the shortest. This is not optimal for even quite small datasets, as the number of possible paths grows factorially with the number of towns (ie 1, 2, 6, 24, 120, 720, 5040, 40320...) and this is simply not practically possible on large datasets even with the most powerful computers. A more optimal approach is to use a heuristic algorithm such as the Nearest Neighbour Algorithm, which starts at a random node and then moves to the nearest node, this is repeated until all nodes are visited. This is a simple and effective algorithm, although it is not always optimal, as it can ge stuck in local minima, where the algorithm gets stuck at the lowest point within a neighbourhood but is not neccaserrally the lowest point overall.
 
 ### 2.2 Visiting all roads within a given radius ###
-Visiting every road within a given radius is a similar problem to the first, but with different constraints and objectives. This problem is commonly known as the Chinese Postman Problem (CPP), where the objective is to find the shortest possible route that visits every edge in a graph at least once. The problem is further complicated by the fact that the graph is non eulerian, meaning that not all nodes have an even degree. 
+Visiting every road within a given radius is a similar problem to the first, but with different constraints and objectives. This problem is commonly known as the Chinese Postman Problem (CPP), where the objective is to find the shortest possible route that visits every edge in a graph at least once. The problem is further complicated by the fact that the graph is non eulerian, meaning that not all nodes have an even degree.
 
 
 
