@@ -2,8 +2,16 @@ import networkx as nx
 import numpy as np 
 import matplotlib.pyplot as plt
 import csv
-import random
+import queue
+from dataclasses import dataclass, field
+from typing import Any
 import math
+
+@dataclass(order=True)
+class PrioritizedItem:
+    priority: float
+    item: Any=field(compare=False)
+
 class Node:
     def __init__(self, name, pop, income, lat, long):
         # Name, latitude, longitude, population, weekly household income, default colour (1-5), empty list of neighbours
@@ -204,7 +212,6 @@ class Graph:
         print([nodes[i].name for i in min_path])
         return
 
-    def cpp(self, start, radius):
         nodes = self.bfs(start, radius)
         n = len(nodes)
 
@@ -237,7 +244,47 @@ class Graph:
 
         return
 
-    # Create a sub graph object only containing given nodes
+    def dijkstra(self, start, target):
+        # Create a priority queue
+        pq = queue.PriorityQueue()
+        pq.put(PrioritizedItem(0, start)) # Add the starting node to the priority queue with a priority of 0
+
+        # Create a dictionary to store the distance from the starting node to each node
+        visited = {start: 0.0}
+        
+        # Create a dictionary to store the previous node in the shortest path
+        previous = {start: None}
+
+        # Set all nodes to infinity distance with no prev and add them to the priority queue
+        for node in self.nodes:
+            if node != start:
+                visited[node] = float("inf")
+                previous[node] = None
+                pq.put(PrioritizedItem(float("inf"), node)) # Add the node to the priority queue with a distance of infinity
+        
+        # Find the shortest path to each node
+        while len(pq.queue) > 0:
+            current = pq.get().item # Get the node with the shortest distance
+            for neighbour in current.neighbours:
+                dist = self.get_dist(current.name, neighbour)
+                neighbour = self.node_dict[neighbour] # Convert the neighbour name to a node object
+                
+                alt = dist + visited[current] # Calculate the new distance to the neighbour
+                if alt < visited[neighbour]: # If the new distance is less than the previous distance
+                    visited[neighbour] = alt
+                    previous[neighbour] = current
+                    pq.put(PrioritizedItem(alt, neighbour)) # Add the neighbour to the priority queue with the new distance
+
+        # Create a list of nodes in the shortest path
+        path = []
+        current = target
+        while current != None:
+            path.insert(0, current)
+            current = previous[current]
+
+        return path, visited[target]
+
+# Create a sub graph object only containing given nodes
     def create_subgraph(self, nodes):
         subgraph = Graph()
         subgraph.nodes = nodes
@@ -303,7 +350,8 @@ original = Graph()
 # Load data into that object.
 original.load_data()
 
-original.shortest_path(original.node_dict["Alexandra"], 100)
+path = original.dijkstra(original.node_dict["Alexandra"], original.node_dict["Bendigo"])
+print([node.name for node in path[0]], path[1])
 
 # Display the object, also saving to map.png
 original.display("map.png")
