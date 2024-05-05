@@ -5,6 +5,7 @@ import csv
 import queue
 from dataclasses import dataclass, field
 from typing import Any
+from itertools import permutations
 import math
 
 @dataclass(order=True)
@@ -165,84 +166,36 @@ class Graph:
     # these names/parameters but they will probably steer you in the right
     # direction.
 
-    # Find shortest path connecting all nodes in a given radius using floyd-warshall algorithm
+    # Bruteforce TSP
     def tsp(self, start, radius):
         nodes = self.bfs(start, radius)
         n = len(nodes)
-
-        print([node.name for node in nodes])
         
-        # Create a distance matrix
+        # Create a matrix of distances between nodes using floyd-warshall algorithm
         dist = np.zeros((n, n))
         for i in range(n):
             for j in range(n):
-                distance = self.get_dist(nodes[i].name, nodes[j].name)
-                dist[i][j] = distance
-
-        # Check if graph is hamiltonian
-        # Find the shortest path visiting all nodes, edges can be visited multiple times
-        def find_path(start_index: int, visited: set[int], path_length: float, path: list[int]) -> tuple[float, list[int]]:
-            if len(visited) == n:
-                return path_length, path + [start_index]
-            min_dist = float("inf")
-            min_path = []
-
+                dist[i][j] = self.get_dist(nodes[i].name, nodes[j].name)
+        # Floyd-Warshall algorithm
+        for k in range(n):
             for i in range(n):
-                if i not in visited:
-                    new_visited = visited.copy()    
-                    new_visited.add(i)
-                    new_dist, new_path = find_path(i, new_visited, path_length + dist[start_index][i], path + [start_index])
-                    if new_dist < min_dist:
-                        min_dist = new_dist
-                        min_path = new_path
-            return min_dist, min_path
+                for j in range(n):
+                    dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])
 
+        # Brute force algorithm to find the shortest path connecting all nodes using the matrix of distances
+        min_path = None
         min_dist = float("inf")
-        min_path = []
+        for path in permutations(range(n)):
+            path = list(path)
+            path_dist = 0
+            for i in range(n-1):
+                path_dist += dist[path[i]][path[i+1]]
+            if path_dist < min_dist:
+                min_dist = path_dist
+                min_path = path
 
-        for i in range(n):
-            visited = set()
-            visited.add(i)
-            path_length, path = find_path(i, visited, 0, [])
-            if path_length < min_dist:
-                min_dist = path_length
-                min_path = path + [i]
+        return [nodes[i] for i in min_path], min_dist
         
-        print(min_dist)
-        print([nodes[i].name for i in min_path])
-        return
-
-        nodes = self.bfs(start, radius)
-        n = len(nodes)
-
-        graph = self.create_subgraph(nodes)
-
-        # Find index of all nodes
-        node_index = {}
-        for node in nodes:
-            node_index[node] = len(node.neighbours)
-
-        # Check if graph is eulerian, semi-eulerian or not eulerian
-        odd_nodes = 0
-        for node in nodes:
-            if node_index[node] % 2 != 0:
-                odd_nodes += 1
-        if odd_nodes == 0:
-            print("Graph is Eulerian")
-        elif odd_nodes == 2:
-            print("Graph is Semi-Eulerian")
-        else:
-            print("Graph is not Eulerian")
-        
-
-
-
-
-
-
-            
-
-        return
 
     def dijkstra(self, start, target):
         # Create a priority queue
@@ -350,8 +303,9 @@ original = Graph()
 # Load data into that object.
 original.load_data()
 
-path = original.dijkstra(original.node_dict["Alexandra"], original.node_dict["Bendigo"])
-print([node.name for node in path[0]], path[1])
+path = original.tsp(original.node_dict["Alexandra"], 150)
+print([node.name for node in path[0]])
+print(path[1])
 
 # Display the object, also saving to map.png
 original.display("map.png")
