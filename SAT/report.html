@@ -1,7 +1,7 @@
 <h1>VSV VCE Algorithmics SAT U3</h1>
-<p>Task 1: <strong>Shortest Path</strong><br>
+<p>Task 1: <strong>Shortest Path</strong>
 <sub>The response force needs to be deployed from Bendigo to reach the target site as quickly as possible.</sub></p>
-<p>Task 2: <strong>Radius Vaccination</strong><br>
+<p>Task 2: <strong>Radius Vaccination</strong>
 <sub>The medical team must visit every town within a given radius and vaccinate everybody in the shortest possible time.</sub></p>
 <h3>Table of Contents</h3>
 <ol>
@@ -14,46 +14,122 @@
 <p>The following report outlines the design and implementation of two algorithms to address real-world problems faced by the Sanitation and Medical Teams in a fictional urban environment. The goal is to develop sutable algorithms to combat the spread of &quot;Pangobats&quot;, Making use of efficient algorithmic decsign to optimize the task.</p>
 <h2>Part 1: <strong>Model and Specification</strong></h2>
 <h3>1.1 Model</h3>
-<p>The fictional &quot;Pangobat&quot; has been sighted in victoria, Given a map of the region, the Medical and Response team must complete two tasks in the most optimal time:</p>
-<ol>
-<li><strong>Shortest Path</strong>: The Response Team must travel from Bendigo to the target site as quickly as possible, originating from Bendigo.</li>
-<li><strong>Radius Vaccination</strong>: The Medical Team must visit every town within a given radius and vaccinate everybody in the shortest possible time.</li>
-</ol>
-<p>The map of the region is represented as a graph, with each town as a node and each road as an edge. This graph will be a weighted cyclic undirected graph, with each edge containing the time to traverse the road as the weight. Each node also contains attributes such as population, median household weekly income, average age, and 2D GPS coordinates. This infomation is vital to determining order of towns to visit and the shortest path to take, In this case Towns will be prioritised based on the median age (Towns with a higher median age will be prioritised), as the elderly may be at more risk of infection, and median income (Towns with a higher median income will be prioritised), as to secure a greater faith in the government thereby increasing donations. The 2D GPS coordinates will be used to calculate the distance between towns, as the Earth is not flat the distance between towns will be calculated using the Haversine formula. We have unfortunately not been provided with the third dimension of the towns (altitude) and therefor cannot calculate the distance between towns accurately, this will be ignored for the sake of simplicity.</p>
-<p>The Medical team only has one vehicle, and therefor can only visit one town at a time, This will mean that the towns must be visited in a specific path to ensure the shortest possible time taken to vaccinate all residents in the radius. It will also be assumed that the Medical team can vaccinate a town any size instantly and therefor will not be taken into account when calculating the path. The Roads taken will be assumed to have no traffic and therefor the time taken to travel between towns will be constant.</p>
-<p><img src="./map.png" alt="Graph Model"></p>
-<h3>1.2 Task Specification</h3>
-<p>The Sanitation and Medical Teams are tasked with two problems. To treverse each road within a given radius and spray it with Pangobat repellent in the shortest possible time, and to visit every town within a given radius and vaccinate everybody in the shortest possible time. These tasks are commonly known as Travelling Salesman Problems (TSP) and Chinese Postman Problems (CPP), respectively. These algorithms are designed to optimize the routes taken by the teams to minimize travel time and resource usage, They should be designed in this instance to also take into account relevent real world information provided.</p>
-<h3>1.3 Real World Considerations</h3>
-<p>The Sanitation and Medical Teams must consider several real-world factors when designing their algorithms. For the Sanitation Team, the repellent must be sprayed in a timely manner to prevent the spread oe Pangobats and should therefor make use of the <code>time</code> node attribute as well as <code>distance</code>. The algorithm must prioritize towns based on population density as outbreaks will be more common, income -- Low income towns are more at risk for outbreaks, and age -- The elderly are more at risk fot disease.</p>
-<h3>2. Radius Vaccination</h3>
-<p>This second task requires the Medical Team to visit every town within a given radius and vaccinate all residents. The problem is similar to the first, but with different constraints and objectives. This problem is of paramount importance in scenarios like mass vaccination campaigns, where timely and comprehensive coverage can significantly impact public health outcomes, similar to what was seen in the COVID pandemic. To model this real-world problem effectively, several key features need consideration.</p>
-<p>As with the first task, a Graph ADT will be used to represent the town network, with each town as a Node and each road as an Edge. Each node will include attributes like location coordinates, population density, average income and average age. The edges will contain data like distance and time required for traversal. This information is vital for route planning and resource allocation and provides the basis for optimising routes abd minimising travel time. Furthermore, the algorithm must account for the vaccination process itself. A priority queue ADT is introduced to manage the order of towns to be visited based on factors like population density, urgency of vaccination (derived from median age and income), and travel distances. This ensures that high-priority locations are addressed promptly, optimizing the overall vaccination schedule</p>
-<h3>3. ADT Signitures</h3>
+<p>The algorithmic problem at hand is to design an efficient system for managing the government’s response to sightings of Flying Pangolins (Pangobats) in Victoria, which are carriers of Itchy Nose Syndrome (INS). This disease is highly contagious and detrimental, necessitating a swift and coordinated response. The government has established two teams to address this issue: a Response Team and a Medical Team. The Response Team is tasked with quickly reaching the target site, while the Medical Team must visit every town within a given radius and vaccinate all residents.</p>
+<p>In the real world, the spread of infectious diseases carried by animals like Pangobats can have severe consequences for public health and the economy. Timely response, efficient resource allocation, and strategic planning are crucial to containing such outbreaks. The algorithmic solution needs to optimize the deployment of resources, minimize response time, prioritize vulnerable populations, and ensure thorough coverage of affected areas to mitigate the impact of INS outbreaks.</p>
+<p>The teams are provided with a map of the relevent areas. The map is represented using a Graph ADT, with each town as a node and each road as an edge. This graph will be a weighted cyclic undirected graph, with each edge containing the length of the road as the weight and the time to travel the road as an additional attributes. Each node also contains attributes such as population, median household weekly income, average age, and 2D GPS coordinates. This infomation is vital to determining order of towns to visit and determining the quickest path to take. For simplicity, the third dimension of towns (altitude) is disregarded, thereby excluding altitude-based distance calculations.</p>
+<p>The Medical team operates as a single unit with only one vehicle, It is assumed that the vehicle can carry an infinite amount of vaccines, has an infinite amount of fuel and can vaccinate any sized town instantaniously once reached. This means that the vehicle travels at a constant speed and can visit all towns within the radius in a single trip. The Algorithm that must be designed to generate a path for the medical team to travel is generically known as a Travelling Salesman Problem (TSP), where the goal is to visit every town within a given radius and return to the starting point in the shortest possible time. When calculating the relevent towns within the radius the distance between towns should be calculated using the Haversine formula, which takes into account the curvature of the Earth, providing a more accurate distance between two points on the Earth's surface. As the Pangobats can fly, they needn't follow the roads and can travel in a straight line between towns. This is important to note as the distance between towns is not the same as the distance between roads, this is taken into account when calculating the distance between towns within the radius. The Edge weights (Time taken to Travel) and Edge Length should be used when calculating the shortest path between two towns for the vehicle to travel.</p>
+<p>In this task real world considerations must be taken into account to ensure the algorithm can prioritize more at risk towns. The algorithm must prioritize towns based on population density, income, and age. This is important as outbreaks are more common in towns with higher population density, lower income, and older populations, addressing these towns first should lower the impact that an outbreak can have on the surrounding community and stop further spread. This priotitization will be represented through the use of a priority queue, which will order the towns based on the given attributes. This will ensure that the towns most at risk are visited first, then a shorter path can be calculated between these towns to minimize travel time.</p>
+<p>The Response team's task can be modeled using a simple Shortest Path Problem, where the Response Team must find the shortest path between Bendigo and the target site. In this algorithm the shortest path between bendigo and a given town must be found using the Edge attribute containing the time to treverse the road. This means the task is optimised for time to reach the target. The algorithm does not need to take into account the straight line distance or the earth's curvature as the vehicles must travel on roads. As this the team only needs to reach the target site the algorithm does not need to take into account factors such as population density, average income, and average age of each town, as the team is not required to stop at any towns along the way. It is assumed that the team only needs to reach the given target, and the vehicle will have an infinite amount of fuel so it can travel any distance without stopping.</p>
+<h4>Relevent ADT Signitures</h4>
 <ul>
+<li>Graph<ul>
+<li><strong>get_edge_value</strong>: Graph, Node, Node -&gt; int</li>
+<li><strong>get_node_value</strong>: Graph, Node -&gt; dict <span style="color:blue"><em>returns node attributes as a dictionary</em></span></li>
+<li><strong>get_nodes</strong>: Graph -&gt; list</li>
+<li><strong>get_edges</strong>: Graph -&gt; list</li>
+</ul>
+</li>
+<li>List<ul>
+<li><strong>append</strong>: element, List -&gt; List</li>
+<li><strong>contains</strong>: element, List -&gt; bool</li>
+<li><strong>length</strong>: List -&gt; int</li>
+</ul>
+</li>
+<li>Stack<ul>
+<li><strong>push</strong>: element, Stack -&gt; Stack</li>
+<li><strong>pop</strong>: Stack -&gt; element</li>
+<li><strong>isEmpty</strong>: Stack -&gt; bool</li>
+</ul>
+</li>
 <li>Priority Queue<ul>
 <li><strong>enqueue</strong>: element, int -&gt; Priority Queue</li>
 <li><strong>dequeue</strong>: Priority Queue -&gt; element</li>
 <li><strong>isEmpty</strong>: Priority Queue -&gt; bool</li>
 </ul>
 </li>
-<li>Set<ul>
-<li><strong>add</strong>: element, Set -&gt; Set</li>
-<li><strong>remove</strong>: element, Set -&gt; Set</li>
-<li><strong>contains</strong>: element, Set -&gt; bool</li>
-<li><strong>length</strong>: Set -&gt; int</li>
 </ul>
-</li>
-</ul>
+<p><img src="./map.png" alt="Graph Model"></p>
 <h2>Part 2: <strong>Design your Algorithm</strong></h2>
-<h3>2.1 Visiting all towns within a given radius</h3>
 <p>Visiting every node within a given radius is a decivingly simple problem, This genre of problem is generally known as a Travelling Salesman Problem (TSP). The problem is to find the shortest possible route that visits every node in a graph exactly once and returns to the starting node. The problem is further complicated by the fact that the graph is weighted, meaning that the distance between nodes is not uniform, This is then combined with the radius of towns taking into account the curviture of the Earth. The algorithm must be designed to take into account the distance between nodes, as well as the population density, average income, and average age of each town.</p>
 <p>The first step the algorithm must take is to determine the relevent towns within the specified radius. This can either be completed using a depth first search (DFS) or a breadth first search (BFS), In this situation BFS is more optimal as it explores level by level, this ensures all nodes within the radius are captured and is quicker for nearby nodes and small radiuses. This will return a list of towns (Nodes) within the radius, which can then be used to calculate the shrotest Hamiltonian path that visits all towns in the list.</p>
 <p>Then the algorithm must calculate the shortest Hamiltonian path that visits all towns in said list. To do this a number of approches can be taken, the simplest being a brute force approach, which calculates the distance of every possible path and returns the shortest. This is not optimal for even quite small datasets, as the number of possible paths grows factorially with the number of towns (ie 1, 2, 6, 24, 120, 720, 5040, 40320...) and this is simply not practically possible on large datasets even with the most powerful computers. A more optimal approach is to use a heuristic algorithm such as the Nearest Neighbour Algorithm, which starts at a random node and then moves to the nearest node, this is repeated until all nodes are visited. This is a simple and effective algorithm, although it is not always optimal, as it can ge stuck in local minima, where the algorithm gets stuck at the lowest point within a neighbourhood but is not neccaserrally the lowest point overall.</p>
-<h3>2.2 Visiting all roads within a given radius</h3>
-<p>Visiting every road within a given radius is a similar problem to the first, but with different constraints and objectives. This problem is commonly known as the Chinese Postman Problem (CPP), where the objective is to find the shortest possible route that visits every edge in a graph at least once. The problem is further complicated by the fact that the graph is non eulerian, meaning that not all nodes have an even degree.</p>
-<h3>2.2 Visiting all roads within a given radius</h3>
-<h2>Part 3: <strong>Implementation</strong></h2>
+<h2>2.2 Finding the Shortest Path</h2>
+<p>The Shortest Path Problem is a well known NP Complete problem in computer science, meaning that it can be completed in polynomial-time. There are a number of algorithms that can be selected to solve this problem, With the most simple and primitive being a brute force style algorithm, wherein all possible paths are calculated and the shortest is returned. This is not practical for large datasets, as the number of possible paths grows factorially with the number of towns (ie 1, 2, 6, 24, 120, 720, 5040, 40320...) and this is simply not practically possible on large datasets even with the most powerful computers.</p>
+<p>A more optimal approach is to use a heuristic algorithm such as Dijkstra's Algorithm, which is a greedy algorithm that calculates the shortest path between two nodes. The algorithm starts at the source node and then moves to the nearest node, this is repeated until the target node is reached. This is a simple and effective algorithm, although it is not always optimal, as it can ge stuck in local minima, where the algorithm gets stuck at the lowest point within a neighbourhood but is not neccaserrally the lowest point overall. This algorithm is optimal for the Shortest Path Problem, as it is a single source to single target problem, and the algorithm is guaranteed to find the shortest path between two nodes.</p>
+<h2>Part 4: Psuedocode</h2>
+<h3>4.1.1 Find Towns within Radius</h3>
+<pre><code>function BFS(Graph, Start, Radius) -&gt; Node List:
+    Queue = New queue containing Start   
+    Visited = New List containing Start
+    
+    while Queue is not empty:
+        Current = Dequeue(Queue)
+        
+        for Neighbour v in Current.neighbours:
+            distance = Haversine(Current, v)
+            if distance &lt;= Radius and v not in Visited:
+                Add v to Queue
+                Add v to Visited
+
+    return Visited
+</code></pre>
+<h3>4.1.2 Medical Team Path</h3>
+<pre><code>function tsp(Graph, Start, Radius) -&gt; Node List:
+    Towns = BFS(Graph, Start, Radius)
+    n = length(Towns)
+    dist = New 2D array of size n x n
+
+    for i from 0 to n-1: // Direct Distance between Towns
+        for j from 0 to n-1:
+            dist[i][j] = The time taken to travel between Towns[i] and Towns[j]
+
+    // Floyd Warshall Algorithm
+    for k from 0 to n-1:
+        for i from 0 to n-1:
+            for j from 0 to n-1:
+                dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])
+
+    min_path = null
+    min_dist = infinity
+
+    for path in all permutations of Towns:
+        path = list(path)
+        path_dist = 0
+
+        for i from 0 to n-2:
+            path_dist += dist[path[i]][path[i+1]]
+
+        if path_dist &lt; min_dist:
+            min_dist = path_dist
+            min_path = path
+    return min_path, min_dist
+</code></pre>
+<h3>4.2.1 Shortest Path to Target</h3>
+<pre><code>function dijkstra(Graph, Start, Target) -&gt; Node List:
+    Queue = New Priority Queue containing Start with a priority of 0 and All other nodes with a priority of infinity
+    Visited = New List containing Start
+    Time = New List containing 0 for Start and infinity for all other nodes
+    Previous = New List containing null for all nodes
+
+    while Queue is not empty:
+        Current = Dequeue(Queue)
+        
+        for Neighbour v in Current.neighbours:
+            time = current.time + Time to travel between Current and v
+            if time &lt; Time[v]:
+                Time[v] = time
+                Previous[v] = Current
+                Queue.enqueue(v, time)
+
+    Path = New List
+    Current = Target
+
+    while Current is not null:
+        Add Current to the front of Path
+        Current = Previous[Current]
+
+    return Path
+</code></pre>
 <h2>Part 4: <strong>Evaluation</strong></h2>
 <p>note to self:</p>
 <ul>
