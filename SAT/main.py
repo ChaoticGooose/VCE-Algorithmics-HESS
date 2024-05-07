@@ -168,20 +168,10 @@ class Graph:
 
     # Bruteforce TSP
     def tsp(self, start, radius):
+
         nodes = self.bfs(start, radius)
         n = len(nodes)
         
-        # Create a matrix of distances between nodes using floyd-warshall algorithm
-        dist = np.zeros((n, n))
-        for i in range(n):
-            for j in range(n):
-                dist[i][j] = self.get_dist(nodes[i].name, nodes[j].name)
-        # Floyd-Warshall algorithm
-        for k in range(n):
-            for i in range(n):
-                for j in range(n):
-                    dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])
-
         # Brute force algorithm to find the shortest path connecting all nodes using the matrix of distances
         min_path = None
         min_dist = float("inf")
@@ -189,7 +179,7 @@ class Graph:
             path = list(path)
             path_dist = 0
             for i in range(n-1):
-                path_dist += dist[path[i]][path[i+1]]
+                path_dist += self.get_dist(nodes[path[i]].name, nodes[path[i+1]].name)
             if path_dist < min_dist:
                 min_dist = path_dist
                 min_path = path
@@ -303,7 +293,7 @@ original = Graph()
 # Load data into that object.
 original.load_data()
 
-path = original.tsp(original.node_dict["Alexandra"], 150)
+path = original.tsp(original.node_dict["Alexandra"], 100)
 print([node.name for node in path[0]])
 print(path[1])
 
