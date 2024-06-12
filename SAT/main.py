@@ -1,5 +1,4 @@
 import networkx as nx
-import numpy as np 
 import matplotlib.pyplot as plt
 import csv
 import queue
@@ -8,14 +7,17 @@ from typing import Any
 from itertools import permutations
 import math
 
+
 @dataclass(order=True)
 class PrioritizedItem:
     priority: float
-    item: Any=field(compare=False)
+    item: Any = field(compare=False)
+
 
 class Node:
-    def __init__(self, name, pop, income, lat, long):
+    def __init__(self, name, pop, income, age, lat, long):
         # Name, latitude, longitude, population, weekly household income, default colour (1-5), empty list of neighbours
+        self.age = age
         self.name = name
         self.lat = lat
         self.long = long
@@ -67,7 +69,8 @@ class Graph:
                 income = row[2]
                 lat = float(row[3])
                 long = float(row[4])
-                node = Node(name, pop, income, lat, long)
+                age = row[5]
+                node = Node(name, pop, income, age, lat, long)
                 self.nodes.append(node)
 
         # Read the edges, create edge objects and add them to the edge list.
@@ -86,7 +89,7 @@ class Graph:
                         node.add_neighbour(place2)
                     if node.name == place2:
                         node.add_neighbour(place1)
-            
+
             # Generate a dictionary of nodes with the node name as the key
             self.node_dict = {node.name: node for node in self.nodes}
 
@@ -101,6 +104,22 @@ class Graph:
                 return edge.dist
         return float("inf")
 
+    def get_time(self, place1, place2):
+        # Returns the time between two place names (strings) if an edge exists,
+        # otherwise returns infinity.
+
+        for edge in self.edges:
+            if edge.place1 == place1 and edge.place2 == place2:
+                return edge.time
+            if edge.place1 == place2 and edge.place2 == place1:
+                return edge.time
+        return float("inf")
+    
+    def get_avg_age(self, target):
+        for node in self.nodes:
+            if node.name == target:
+                return int(node.age)
+    
     def display(self, filename="map.png"):
         # Displays the object on screen and also saves it to a PNG named in the argument.
 
@@ -111,7 +130,7 @@ class Graph:
         for node in self.nodes:
             G.add_node(node.name, pos=(node.long, node.lat))
             node_colour_list.append(self.colour_dict[node.colour])
-        for edge in self.edges:
+        for edge in self.edges: 
             G.add_edge(edge.place1, edge.place2)
             edge_labels[(edge.place1, edge.place2)] = edge.dist
             edge_colours.append(self.colour_dict[edge.colour])
@@ -166,35 +185,92 @@ class Graph:
     # these names/parameters but they will probably steer you in the right
     # direction.
 
-    # Bruteforce TSP
-    def tsp(self, start, radius):
+    def floyd_warshall(self, nodes):
+        dist_matrix = [[float("inf") for _ in range(len(nodes))] for _ in range(len(nodes))]
+        prev_matrix = [[None for _ in range(len(nodes))] for _ in range(len(nodes))]
 
+        for i in range(len(nodes)):
+            for j in range(len(nodes)):
+                dist_matrix[i][j] = self.get_time(nodes[i].name, nodes[j].name)
+                if dist_matrix[i][j] != float("inf"):
+                    prev_matrix[i][j] = j
+
+        for k in range(len(nodes)):
+            for i in range(len(nodes)):
+                for j in range(len(nodes)):
+                    if dist_matrix[i][j] > dist_matrix[i][k] + dist_matrix[k][j]:
+                        dist_matrix[i][j] = dist_matrix[i][k] + dist_matrix[k][j]
+                        prev_matrix[i][j] = prev_matrix[i][k]
+
+        return dist_matrix, prev_matrix
+
+    """
+        Given a starting node and a radius, find the shortest path that visits all nodes within the radius using a brute force algorithm to traverse the graph.
+
+        Signature: graph x node x int -> list x float
+    """
+    def tsp(self, start, radius):
         nodes = self.bfs(start, radius)
         n = len(nodes)
         
-        # Brute force algorithm to find the shortest path connecting all nodes using the matrix of distances
+        dist_matrix, prev_matrix = self.floyd_warshall(nodes)
+        
+        # Find the index of the starting node
+        start_index = nodes.index(start)
+
+        # Find the shortest cycle using the matrix of distances through brute force
         min_path = None
         min_dist = float("inf")
-        for path in permutations(range(n)):
-            path = list(path)
-            path_dist = 0
-            for i in range(n-1):
-                path_dist += self.get_dist(nodes[path[i]].name, nodes[path[i+1]].name)
-            if path_dist < min_dist:
-                min_dist = path_dist
-                min_path = path
+        scaled_min_dist = float("inf")
+        
+        # Precompute average ages for nodes
+        avg_ages = [self.get_avg_age(node.name) for node in nodes]
+
+        # Generate permutations of nodes excluding the start node
+        for perm in permutations(range(n)):
+            if perm[0] == start_index:
+                path = list(perm) + [start_index]  # Ensure the path ends at the start
+
+                path_dist = 0
+                scaled_path_dist = 0
+                for i in range(n):
+                    if i < n - 1:
+                        current_dist = dist_matrix[path[i]][path[i + 1]]
+                    else:
+                        current_dist = dist_matrix[path[i]][path[0]]
+                    
+
+                    avg_age = avg_ages[path[i]]
+                    path_dist += current_dist
+                    if avg_age > 55:  # Add more of these types of conditions to change the preference of the path
+                        scaled_path_dist += current_dist * 0.8 
+                    else:
+                        scaled_path_dist += current_dist
+
+                if scaled_path_dist < scaled_min_dist:
+                    min_dist = path_dist
+                    min_path = path
+                    scaled_min_dist = scaled_path_dist
 
         return [nodes[i] for i in min_path], min_dist
-        
 
+
+    """
+        Find the shortest path between two nodes using Dijkstra's algorithm to traverse the graph.
+        Distance between nodes is calculated using the time attribute of the edge between the nodes.
+
+        Signature: graph x node x node -> list x float
+    """
     def dijkstra(self, start, target):
         # Create a priority queue
         pq = queue.PriorityQueue()
-        pq.put(PrioritizedItem(0, start)) # Add the starting node to the priority queue with a priority of 0
+        pq.put(
+            PrioritizedItem(0, start)
+        )  # Add the starting node to the priority queue with a priority of 0
 
         # Create a dictionary to store the distance from the starting node to each node
         visited = {start: 0.0}
-        
+
         # Create a dictionary to store the previous node in the shortest path
         previous = {start: None}
 
@@ -203,20 +279,30 @@ class Graph:
             if node != start:
                 visited[node] = float("inf")
                 previous[node] = None
-                pq.put(PrioritizedItem(float("inf"), node)) # Add the node to the priority queue with a distance of infinity
-        
+                pq.put(
+                    PrioritizedItem(float("inf"), node)
+                )  # Add the node to the priority queue with a distance of infinity
+
         # Find the shortest path to each node
         while len(pq.queue) > 0:
-            current = pq.get().item # Get the node with the shortest distance
+            current = pq.get().item  # Get the node with the shortest distance
             for neighbour in current.neighbours:
-                dist = self.get_dist(current.name, neighbour)
-                neighbour = self.node_dict[neighbour] # Convert the neighbour name to a node object
-                
-                alt = dist + visited[current] # Calculate the new distance to the neighbour
-                if alt < visited[neighbour]: # If the new distance is less than the previous distance
+                dist = self.get_time(current.name, neighbour)
+                neighbour = self.node_dict[
+                    neighbour
+                ]  # Convert the neighbour name to a node object
+
+                alt = (
+                    dist + visited[current]
+                )  # Calculate the new distance to the neighbour
+                if (
+                    alt < visited[neighbour]
+                ):  # If the new distance is less than the previous distance
                     visited[neighbour] = alt
                     previous[neighbour] = current
-                    pq.put(PrioritizedItem(alt, neighbour)) # Add the neighbour to the priority queue with the new distance
+                    pq.put(
+                        PrioritizedItem(alt, neighbour)
+                    )  # Add the neighbour to the priority queue with the new distance
 
         # Create a list of nodes in the shortest path
         path = []
@@ -226,23 +312,6 @@ class Graph:
             current = previous[current]
 
         return path, visited[target]
-
-# Create a sub graph object only containing given nodes
-    def create_subgraph(self, nodes):
-        subgraph = Graph()
-        subgraph.nodes = nodes
-
-        # Get existing edges between nodes
-        for edge in self.edges:
-            if self.node_dict[edge.place1] in nodes and self.node_dict[edge.place2] in nodes:
-                subgraph.edges.append(edge)
-
-        subgraph.node_dict = {node.name: node for node in subgraph.nodes}
-
-
-        return subgraph
-
-
 
     """
         Create a list of nodes within a given radius of a starting node using a breadth-first search algorithm to traverse the graph.
@@ -265,7 +334,7 @@ class Graph:
             for neighbour in node.neighbours:
                 neighbour = self.node_dict[neighbour]
                 # Calculate the distance from the starting node to the neighbour
-                distance = self.haversine( # Add the previous distance to the distance to the neighbour to generate the total distance
+                distance = self.haversine(  # Add the previous distance to the distance to the neighbour to generate the total distance
                     start.lat, start.long, neighbour.lat, neighbour.long
                 )
 
@@ -283,8 +352,22 @@ class Graph:
         # Convert the dictionary of visited nodes to a list of node names
         nodes = list(visited.keys())
 
-        return nodes # Return the list of nodes within the radius
-    
+        return nodes  # Return the list of nodes within the radius
+
+def print_all_data(graph, node, radius):
+    radius_nodes = graph.bfs(node, radius)
+    tsp_path, tsp_dist = graph.tsp(node, radius)
+    ssp_path, ssp_dist = graph.dijkstra(original.node_dict["Bendigo"], node)
+
+    # Convert the list of nodes to a list of node names
+    radius_nodes = [node.name for node in radius_nodes]
+    tsp_path = [node.name for node in tsp_path]
+    ssp_path = [node.name for node in ssp_path]
+
+    print(f"Nodes within {radius} km of {node.name}: {radius_nodes}")
+    print(f"Shortest path connecting all nodes: {tsp_path} with a travel time of {tsp_dist} (Including age preference)")
+    print(f"Shortest path from Bendigo to {node.name}: {ssp_path} with a travel time of {ssp_dist}")
+
 # These commands run the code.
 
 # Create a new graph object called 'original'
@@ -293,9 +376,7 @@ original = Graph()
 # Load data into that object.
 original.load_data()
 
-path = original.tsp(original.node_dict["Alexandra"], 100)
-print([node.name for node in path[0]])
-print(path[1])
+print_all_data(original, original.node_dict["Mildura"], 300)
 
 # Display the object, also saving to map.png
 original.display("map.png")
