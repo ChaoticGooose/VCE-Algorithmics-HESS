@@ -156,21 +156,48 @@ class Graph:
     # This is where you will write your algorithms. You don't have to use
     # these names/parameters but they will probably steer you in the right
     # direction.
+    """
+        Create a list of nodes within a given radius of a starting node using a breadth-first search algorithm to traverse the graph.
+        Distance between nodes is calculated using the haversine formula to account for the curvature of the Earth and Summed from the starting point out.
 
-    # Find shortest hamiltonian path covering all nodes within a given radius
-    # Nearest neighbour algorithm
-    # https://medium.com/@suryabhagavanchakkapalli/solving-the-traveling-salesman-problem-in-python-using-the-nearest-neighbor-algorithm-48fcf8db289a
-    def tsp(self, start, radius):
-        pass
+        Signature: graph x node x int -> list
+    """
+    def bfs(self, start, radius: int) -> list:
+        # Create a dictionary to store the distance from the starting node to each node
+        visited = {start: 0.0}
+        # Create a queue to store nodes to visit with the starting node
+        queue = [start]
 
-    def searchteam(self, target, radius):
-        pass
+        # While there are nodes in the queue
+        while queue:
+            # Get the next node to visit
+            node = queue.pop(0)
 
-    def vaccinate(self, target, radius):
-        pass
+            # For each neighbour of the current node
+            for neighbour in node.neighbours:
+                neighbour = self.node_dict[neighbour]
+                # Calculate the distance from the starting node to the neighbour
+                distance = self.haversine(  # Add the previous distance to the distance to the neighbour to generate the total distance
+                    start.lat, start.long, neighbour.lat, neighbour.long
+                )
 
-    def findpath(self, target):
-        pass
+                # If the distance is outside the radius, break the loop
+                if distance > radius:
+                    continue
+
+                # If the neighbour has not been visited or the new distance is less than the previous distance
+                if neighbour not in visited or distance < visited[neighbour]:
+                    # Update the distance to the neighbour
+                    visited[neighbour] = distance
+                    # Add the neighbour to the queue
+                    queue.append(neighbour)
+
+        # Convert the dictionary of visited nodes to a list of node names
+        nodes = list(visited.keys())
+
+        return nodes  # Return the list of nodes within the radius
+
+
 
 
 # These commands run the code.
