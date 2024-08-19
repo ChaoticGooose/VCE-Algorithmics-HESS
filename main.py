@@ -6,7 +6,6 @@ import random
 import math
 from itertools import permutations
 
-
 class Node:
     def __init__(self, name, pop, income, lat, long):
         # Name, latitude, longitude, population, weekly household income, default colour (1-5), empty list of neighbours
@@ -91,6 +90,18 @@ class Graph:
             if edge.place1 == place2 and edge.place2 == place1:
                 return edge.dist
         return -1
+
+    def get_time(self, place1, place2):
+        # Returns the time between two place names (strings) if an edge exists,
+        # otherwise returns infinity.
+
+        for edge in self.edges:
+            if edge.place1 == place1 and edge.place2 == place2:
+                return edge.time
+            if edge.place1 == place2 and edge.place2 == place1:
+                return edge.time
+        return float("inf")
+
 
     def display(self, filename="map.png"):
         # Displays the object on screen and also saves it to a PNG named in the argument.
