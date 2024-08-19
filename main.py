@@ -89,7 +89,7 @@ class Graph:
                 return edge.dist
             if edge.place1 == place2 and edge.place2 == place1:
                 return edge.dist
-        return -1
+        return float("inf")
 
     def get_time(self, place1, place2):
         # Returns the time between two place names (strings) if an edge exists,
