@@ -202,6 +202,10 @@ class Graph:
                     if node.name == place2:
                         node.add_neighbour(place1)
 
+            # Generate a dictionary of nodes with the node name as the key
+            self.node_dict = {node.name: node for node in self.nodes}
+
+
     def get_dist(self, place1, place2):
         # Returns the distance between two place names (strings) if an edge exists,
         # otherwise returns -1.
