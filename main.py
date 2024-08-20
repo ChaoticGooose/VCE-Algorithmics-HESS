@@ -1,13 +1,92 @@
 import networkx as nx
+from queue import PriorityQueue
 from dataclasses import dataclass, field
 import argparse
 from typing import Any
-import numpy as np
 import matplotlib.pyplot as plt
 import csv
 import random
 import math
-from itertools import permutations
+
+@dataclass(order=True)
+class PrioritizedItem:
+    priority: float
+    item: Any = field(compare=False)
+
+class AStar:
+    class PathNode:
+        def __init__(self, node):
+            self.node = node
+            self.g = float("inf")
+            self.h = float("inf")
+            self.f = float("inf")
+
+    def __init__(self, graph, start, target):
+        self.graph = graph
+        self.start = self.PathNode(start)
+        self.target = target
+
+        self.start.g = 0
+        self.start.h = self.heuristic(self.start.node)
+        self.start.f = self.start.g + self.start.h
+
+        self.open = PriorityQueue()
+        self.closed = set()
+
+        self.parent = {}
+
+        self.path = []
+        self.path_found = False
+
+    def heuristic(self, node):
+        return self.graph.haversine(node.lat, node.long, self.target.lat, self.target.long)
+
+    def find_path(self):
+        self.open.put(PrioritizedItem(self.start.f, self.start))
+
+        while not self.open.empty():
+            current = self.open.get().item
+
+            if current.node == self.target:
+                self.path_found = True
+                break
+
+            self.closed.add(current.node)
+
+            for neighbour in current.node.neighbours:
+                neighbour = self.graph.node_dict[neighbour]
+
+                if neighbour in self.closed:
+                    continue
+
+                neighbour_node = self.PathNode(neighbour)
+
+                g = current.g + self.graph.get_dist(current.node.name, neighbour.name)
+                h = self.heuristic(neighbour)
+                f = g + h
+
+                if f < neighbour_node.f:
+                    neighbour_node.g = g
+                    neighbour_node.h = h
+                    neighbour_node.f = f
+
+                    self.parent[neighbour] = current.node
+
+                    self.open.put(PrioritizedItem(neighbour_node.f, neighbour_node))
+
+        if self.path_found:
+            current = self.target
+            while current != self.start.node:
+                self.path.insert(0, current)
+                current = self.parent[current]
+
+            self.path.insert(0, self.start.node)
+
+            return self.path
+
+        return None
+        
+
 
 class SimulatedAnnealing:
     def __init__(self, graph, start, radius, T=100.0, stop_temp=-1, timeout=100000, cooling_rate=0.995):
@@ -146,10 +225,6 @@ class Node:
         if neighbour not in self.neighbours:
             self.neighbours.append(neighbour)
 
-@dataclass(order=True)
-class PrioritizedItem:
-    priority: float
-    item: Any = field(compare=False)
 
 class Edge:
     def __init__(self, place1, place2, dist, time):
@@ -356,6 +431,23 @@ original.load_data()
 
 # You will add your own functions under the Graph object and call them in this way:
 # original.findpath("Alexandra")
+def print_path(graph, start, end):
+    print(f"Start: {start}")
+    print(f"End: {end}")
+
+    a_star = AStar(graph, graph.node_dict[start], graph.node_dict[end])
+
+    path = a_star.find_path()
+
+    if path is None:
+        print("No path found")
+        return None
+
+    # Convert the path to a list of node names
+    print(f"Path: {[node.name for node in path]}")
+
+    return path
+
 def print_all(graph, start, radius, temp, stop_temp, timeout, cooling_rate):
     print(f"Start: {start}")
     print(f"Radius: {radius}")
@@ -368,6 +460,10 @@ def print_all(graph, start, radius, temp, stop_temp, timeout, cooling_rate):
 
     best_path, best_stats = sa.anneal()
 
+    if best_path is None:
+        print("No path found")
+        return None
+
     # Convert the best path to a list of node names
 
     print(f"Best Path: {[node.name for node in best_path]}")
@@ -376,32 +472,45 @@ def print_all(graph, start, radius, temp, stop_temp, timeout, cooling_rate):
     return best_path, best_stats
 
 # CLI Arguments, Start Node, Radius, T (opt), Stop Temp (opt), Timeout (opt), Cooling Rate (opt)
+boolopts = {
+        "tsp": {"short": "-tsp", "long": "--tsp", "help": "Travelling Salesman Problem"},
+        "sssp": {"short": "-sssp", "long": "--sssp", "help": "Single Source Shortest Path"},
+        "display": {"short": "-d", "long": "--display", "help": "Display map"},
+        }
 opts = {
         "node": {"short": "-n", "long": "--node", "help": "Start node"},
+        "target": {"short": "-t", "long": "--target", "help": "Target node (Pathfinding)"},
         "radius": {"short": "-r", "long": "--radius", "help": "Radius"},
-        "temp": {"short": "-t", "long": "--temp", "help": "Initial temperature (default: 100.0)"},
+        "temp": {"short": "-tp", "long": "--temp", "help": "Initial temperature (default: 100.0)"},
         "stop": {"short": "-s", "long": "--stop", "help": "Stop temperature (default: 1e-8)"},
         "timeout": {"short": "-o", "long": "--timeout", "help": "Timeout iterations (default: 100000)"},
         "cooling": {"short": "-c", "long": "--cooling", "help": "Cooling rate (default: 0.995)"},
-        "display": {"short": "-d", "long": "--display", "help": "Display map"},
         }
 
 parser = argparse.ArgumentParser(description="Simulated Annealing for Travelling Salesman Problem")
 for opt, val in opts.items():
     parser.add_argument(val["short"], val["long"], help=val["help"])
+for opt, val in boolopts.items():
+    parser.add_argument(val["short"], val["long"], help=val["help"], action=argparse.BooleanOptionalAction)
 args = parser.parse_args()
 
 start = args.node
-radius = int(args.radius)
-T = 100.0 if args.temp is None else float(args.temp)
-stop_temp = 1e-8 if args.stop is None else float(args.stop)
-timeout = 100000 if args.timeout is None else int(args.timeout)
-cooling_rate = 0.995 if args.cooling is None else float(args.cooling)
-display = True if args.display is not None else False
 
-print_all(original, start, radius, T, stop_temp, timeout, cooling_rate)
+if args.tsp:
+    radius = int(args.radius)
+    T = 100.0 if args.temp is None else float(args.temp)
+    stop_temp = 1e-8 if args.stop is None else float(args.stop)
+    timeout = 100000 if args.timeout is None else int(args.timeout)
+    cooling_rate = 0.995 if args.cooling is None else float(args.cooling)
 
-if display:
+    path = print_all(original, start, radius, T, stop_temp, timeout, cooling_rate)
+
+if args.sssp:
+    target = args.target
+
+    path = print_path(original, start, target)
+
+if args.display:
     original.display("map.png")
 
 
