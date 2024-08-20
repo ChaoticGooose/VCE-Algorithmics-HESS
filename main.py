@@ -1,4 +1,5 @@
 import networkx as nx
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
@@ -345,3 +346,113 @@ original.load_data()
 
 # You will add your own functions under the Graph object and call them in this way:
 # original.findpath("Alexandra")
+def print_all(graph, start, radius, temp, stop_temp, timeout, cooling_rate):
+    print(f"Start: {start}")
+    print(f"Radius: {radius}")
+    print(f"Initial Temperature: {temp}")
+    print(f"Stop Temperature: {stop_temp}")
+    print(f"Timeout: {timeout}")
+    print(f"Cooling Rate: {cooling_rate}")
+
+    sa = SimulatedAnnealing(graph, graph.node_dict[start], radius, temp, stop_temp, timeout, cooling_rate)
+
+    best_path, best_stats = sa.anneal()
+
+    print(f"Best Path: {best_path}")
+    print(f"Best Stats: {best_stats}")
+
+    return best_path, best_stats
+
+def help():
+    print("Usage: main.py -n <start> -r <radius> [-t <temp>] [-s <stop>] [-o <timeout>] [-c <cooling>] [-d]")
+    print("Options:")
+    print("  -n, --node     Start node")
+    print("  -r, --radius   Radius")
+    print("  -t, --temp     Initial temperature (default: 100.0)")
+    print("  -s, --stop     Stop temperature (default: 1e-8)")
+    print("  -o, --timeout  Timeout iterations (default: 100000)")
+    print("  -c, --cooling  Cooling rate (default: 0.995)")
+    print("  -d, --display  Display map")
+    exit(1)
+
+# CLI Arguments, Start Node, Radius, T (opt), Stop Temp (opt), Timeout (opt), Cooling Rate (opt)
+opts = {
+        "node": {"short": "-n", "long": "--node", "help": "Start node"},
+        "radius": {"short": "-r", "long": "--radius", "help": "Radius"},
+        "temp": {"short": "-t", "long": "--temp", "help": "Initial temperature (default: 100.0)"},
+        "stop": {"short": "-s", "long": "--stop", "help": "Stop temperature (default: 1e-8)"},
+        "timeout": {"short": "-o", "long": "--timeout", "help": "Timeout iterations (default: 100000)"},
+        "cooling": {"short": "-c", "long": "--cooling", "help": "Cooling rate (default: 0.995)"},
+        "display": {"short": "-d", "long": "--display", "help": "Display map"},
+        }
+
+parser = argparse.ArgumentParser(description="Simulated Annealing for Travelling Salesman Problem")
+for opt, val in opts.items():
+    parser.add_argument(val["short"], val["long"], help=val["help"])
+args = parser.parse_args()
+
+start = args.node
+radius = args.radius
+T = 100.0 if args.temp is None else float(args.temp)
+stop_temp = 1e-8 if args.stop is None else float(args.stop)
+timeout = 100000 if args.timeout is None else int(args.timeout)
+cooling_rate = 0.995 if args.cooling is None else float(args.cooling)
+display = True if args.display is not None else False
+
+print_all(original, start, radius, T, stop_temp, timeout, cooling_rate)
+
+
+
+
+
+"""
+args = sys.argv[1:]
+
+opts = "n:r:t:s:o:c:d?"
+longopts = ["node=", "radius=", "temp=", "stop=", "timeout=", "cooling=", "display", "help"]
+
+# Default values
+start = None
+radius = None
+T = 100.0
+stop_temp = 1e-8
+timeout = 100000
+cooling_rate = 0.995
+display = False
+
+try:
+    arguments, values = getopt.getopt(args, opts, longopts)
+
+    for arg, val in arguments:
+        match arg:
+            case "-n", "--node":
+                start = val
+            case "-r", "--radius":
+                radius = int(val)
+            case "-t", "--temp":
+                T = float(val)
+            case "-s", "--stop":
+                stop_temp = float(val)
+            case "-o", "--timeout":
+                timeout = int(val)
+            case "-c", "--cooling":
+                cooling_rate = float(val)
+            case "-d", "--display":
+                display = True
+            case "-?", "--help":
+                help()
+except getopt.error as err:
+    print(str(err))
+
+if start is None or radius is None:
+    print("Error: Start node and radius are required")
+    help()
+
+print_all(original, start, radius, T, stop_temp, timeout, cooling_rate)
+"""
+
+if display:
+    original.display("map.png")
+
+
+
