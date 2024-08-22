@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 import argparse
 from typing import Any
 import matplotlib.pyplot as plt
+import datetime
 import csv
 import random
 import math
@@ -41,6 +42,13 @@ class AStar:
 
     def heuristic(self, node):
         return self.graph.haversine(node.lat, node.long, self.target.lat, self.target.long)
+    def stats(self, path):
+        total_dist = 0
+        total_time = 0
+        for i,j in zip(path, path[1:]):
+            total_dist += self.graph.get_dist(i.name, j.name)
+            total_time += self.graph.get_time(i.name, j.name)
+        return total_time, total_dist
 
     def find_path(self):
         self.open.put(PrioritizedItem(self.start.f, self.start))
@@ -386,8 +394,11 @@ original.load_data()
 # You will add your own functions under the Graph object and call them in this way:
 # original.findpath("Alexandra")
 def print_path(graph, start, end):
+    print("A* Pathfinding (SSSP)")
+    print("======================")
+
     print(f"Start: {start}")
-    print(f"End: {end}")
+    print(f"Target: {end} \n")
 
     a_star = AStar(graph, graph.node_dict[start], graph.node_dict[end])
 
@@ -397,18 +408,30 @@ def print_path(graph, start, end):
         print("No path found")
         return None
 
+    # Path Distance and Time
+    stats = a_star.stats(path)
+    hours, mins = divmod(stats[0], 60)
+
     # Convert the path to a list of node names
-    print(f"Path: {[node.name for node in path]}")
+    print(f"Path: {" -> ".join([node.name for node in path])}")
+
+    print(f"Total Time: {hours}hr {mins} min")
+    print(f"Total Distance: {stats[1]}km")
+    print(f"Towns Visited: {len(path)}")
 
     return path
 
 def print_all(graph, start, radius, temp, stop_temp, timeout, cooling_rate):
+    print("Simulated Annealing (TSP)")
+    print("=========================")
     print(f"Start: {start}")
     print(f"Radius: {radius}")
     print(f"Initial Temperature: {temp}")
     print(f"Stop Temperature: {stop_temp}")
     print(f"Timeout: {timeout}")
     print(f"Cooling Rate: {cooling_rate}")
+
+    print()
 
     sa = SimulatedAnnealing(graph, graph.node_dict[start], radius, temp, stop_temp, timeout, cooling_rate)
 
@@ -419,9 +442,12 @@ def print_all(graph, start, radius, temp, stop_temp, timeout, cooling_rate):
         return None
 
     # Convert the best path to a list of node names
+    hours, mins = divmod(best_stats[0], 60)
 
-    print(f"Best Path: {[node.name for node in best_path]}")
-    print(f"Best Stats: {best_stats}")
+    print(f"Best Path: {" -> ".join([node.name for node in best_path])}")
+    print(f"Total Time: {hours}hr {mins} min")
+    print(f"Total Distance: {best_stats[1]}km")
+    print(f"Towns Visited: {len(best_path)}")
 
     return best_path, best_stats
 
@@ -450,6 +476,10 @@ args = parser.parse_args()
 
 start = args.node
 
+print(f"Algotithmics SAT 2: Advanced Algorithms")
+print("=======================================\n")
+
+
 if args.tsp:
     radius = int(args.radius)
     T = 100.0 if args.temp is None else float(args.temp)
@@ -460,6 +490,7 @@ if args.tsp:
     path = print_all(original, start, radius, T, stop_temp, timeout, cooling_rate)
 
 if args.sssp:
+    print()
     target = args.target
 
     path = print_path(original, start, target)
