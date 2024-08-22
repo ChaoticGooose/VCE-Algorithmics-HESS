@@ -10,165 +10,6 @@ import random
 import math
 import numpy as np
 
-@dataclass(order=True)
-class PrioritizedItem:
-    priority: float
-    item: Any = field(compare=False)
-
-class AStar:
-    class PathNode:
-        def __init__(self, node):
-            self.node = node
-            self.g = float("inf")
-            self.h = float("inf")
-            self.f = float("inf")
-
-    def __init__(self, graph, start, target):
-        self.graph = graph
-        self.start = self.PathNode(start)
-        self.target = target
-
-        self.start.g = 0
-        self.start.h = self.heuristic(self.start.node)
-        self.start.f = self.start.g + self.start.h
-
-        self.open = PriorityQueue()
-        self.closed = set()
-
-        self.parent = {}
-
-        self.path = []
-        self.path_found = False
-
-    def heuristic(self, node):
-        return self.graph.haversine(node.lat, node.long, self.target.lat, self.target.long)
-    def stats(self, path):
-        total_dist = 0
-        total_time = 0
-        for i,j in zip(path, path[1:]):
-            total_dist += self.graph.get_dist(i.name, j.name)
-            total_time += self.graph.get_time(i.name, j.name)
-        return total_time, total_dist
-
-    def find_path(self):
-        self.open.put(PrioritizedItem(self.start.f, self.start))
-
-        while not self.open.empty():
-            current = self.open.get().item
-
-            if current.node == self.target:
-                self.path_found = True
-                break
-
-            self.closed.add(current.node)
-
-            for neighbour in current.node.neighbours:
-                neighbour = self.graph.node_dict[neighbour]
-
-                if neighbour in self.closed:
-                    continue
-
-                neighbour_node = self.PathNode(neighbour)
-
-                g = current.g + self.graph.get_dist(current.node.name, neighbour.name)
-                h = self.heuristic(neighbour)
-                f = g + h
-
-                if f < neighbour_node.f:
-                    neighbour_node.g = g
-                    neighbour_node.h = h
-                    neighbour_node.f = f
-
-                    self.parent[neighbour] = current.node
-
-                    self.open.put(PrioritizedItem(neighbour_node.f, neighbour_node))
-
-        if self.path_found:
-            current = self.target
-            while current != self.start.node:
-                self.path.insert(0, current)
-                current = self.parent[current]
-
-            self.path.insert(0, self.start.node)
-
-            return self.path
-
-        return None
-        
-class SimulatedAnnealing:
-    def __init__(self, graph, start, radius, initial_temp=100.0, stop_temp=1e-8, max_iterations=100000, cooling_rate=0.995):
-        self.graph = graph
-        self.start = start
-        self.nodes = self.graph.bfs(self.start, radius)
-        
-        self.T = initial_temp
-        self.stop_T = stop_temp
-        self.cooling_rate = cooling_rate
-
-        self.max = max_iterations
-
-    def acceptance_probability(self, best, candidate):
-        return np.exp((best - candidate) / self.T)
-
-    def stats(self, path):
-        total_dist = 0
-        total_time = 0
-        for i,j in zip(path, path[1:]):
-            total_dist += self.graph.get_dist(i.name, j.name)
-            total_time += self.graph.get_time(i.name, j.name)
-        return total_time, total_dist
-
-    def verify_path(self, path):
-        verified_path = [path[0]]
-        for i,j in zip(path, path[1:]):
-            a_star = AStar(self.graph, i, j)
-            verified_path.extend(a_star.find_path()[1:])
-
-        return verified_path
-
-    def two_opt_swap(self, path, i, k):
-        new_path = path[:i]
-        new_path.extend(reversed(path[i:k+1]))
-        new_path.extend(path[k+1:])
-        return new_path
-
-    def anneal(self):
-        best_path_nodes = self.nodes
-        best_path = self.verify_path(best_path_nodes)
-        best_stats = self.stats(best_path)
-
-        current_path_nodes = best_path_nodes
-        current_path = best_path
-        current_stats = best_stats
-
-        iter = 0
-        while self.T >= self.stop_T and iter <= self.max:
-            i = random.randint(1, len(current_path) - 2)
-            k = random.randint(i+1, len(current_path) - 1)
-
-            new_path_nodes = self.two_opt_swap(current_path_nodes, i, k)
-            new_path = self.verify_path(new_path_nodes)
-            new_stats = self.stats(new_path)
-
-            if new_stats[0] < current_stats[0]:
-                current_path_nodes = new_path_nodes
-                current_path = new_path
-                current_stats = new_stats
-
-                if new_stats[0] < best_stats[0]:
-                    best_path_nodes = new_path_nodes
-                    best_path = new_path
-                    best_stats = new_stats
-            else:
-                if random.random() < self.acceptance_probability(current_stats[0], new_stats[0]):
-                    current_path_nodes = new_path_nodes
-                    current_path = new_path
-                    current_stats = new_stats
-
-            self.T *= self.cooling_rate
-            iter += 1
-
-        return best_path, best_stats
 
 
 class Node:
@@ -377,7 +218,170 @@ class Graph:
 
         return nodes  # Return the list of nodes within the radius
 
+@dataclass(order=True)
+class PrioritizedItem:
+    priority: float
+    item: Any = field(compare=False)
 
+class AStar:
+    class PathNode:
+        def __init__(self, node: Node) -> None:
+            self.node = node
+            self.g = float("inf")
+            self.h = float("inf")
+            self.f = float("inf")
+
+    def __init__(self, graph: Graph, start: Node, target: Node) -> None:
+        self.graph = graph
+        self.start = self.PathNode(start)
+        self.target = target
+
+        self.start.g = 0
+        self.start.h = self.heuristic(self.start.node)
+        self.start.f = self.start.g + self.start.h
+
+        self.open = PriorityQueue()
+        self.closed = set()
+
+        self.parent = {}
+
+        self.path = []
+        self.path_found = False
+
+    def heuristic(self, node: Node) -> float:
+        return self.graph.haversine(node.lat, node.long, self.target.lat, self.target.long)
+
+    def stats(self, path: list) -> tuple:
+        total_dist = 0
+        total_time = 0
+        for i,j in zip(path, path[1:]): # For each pair of nodes in the path
+            total_dist += self.graph.get_dist(i.name, j.name)
+            total_time += self.graph.get_time(i.name, j.name)
+        return total_time, total_dist
+
+    def find_path(self) -> list:
+        self.open.put(PrioritizedItem(self.start.f, self.start)) # Add the starting node to the open list
+
+        while not self.open.empty(): # While there are nodes in the open list
+            current = self.open.get().item # Dequeue the node with the lowest f value
+
+            if current.node == self.target:
+                self.path_found = True
+                break
+
+            self.closed.add(current.node) # Add the current node to the closed list
+
+            for neighbour in current.node.neighbours:
+                # Convert the neighbour name to a node object, Could probably be fixed by refactoring the node.neighbours method to return nodes
+                neighbour = self.graph.node_dict[neighbour] 
+
+                if neighbour in self.closed:
+                    continue
+
+                neighbour_node = self.PathNode(neighbour)
+
+                g = current.g + self.graph.get_dist(current.node.name, neighbour.name)
+                h = self.heuristic(neighbour)
+                f = g + h
+
+                if f < neighbour_node.f:
+                    neighbour_node.g = g
+                    neighbour_node.h = h
+                    neighbour_node.f = f
+
+                    self.parent[neighbour] = current.node
+
+                    self.open.put(PrioritizedItem(neighbour_node.f, neighbour_node)) # Add the neighbour to the open list
+
+        if self.path_found:
+            current = self.target
+            while current != self.start.node:
+                self.path.insert(0, current) # Insert the current node at the start of the path
+                current = self.parent[current]
+
+            self.path.insert(0, self.start.node) # Insert the starting node at the start of the path
+
+            return self.path
+
+        return [None]
+        
+class SimulatedAnnealing:
+    def __init__(self, graph, start, radius, initial_temp=100.0, stop_temp=1e-8, max_iterations=100000, cooling_rate=0.995):
+        self.graph = graph
+        self.start = start
+        self.nodes = self.graph.bfs(self.start, radius) # Get the nodes within the radius of the starting node
+        
+        self.T = initial_temp
+        self.stop_T = stop_temp
+        self.cooling_rate = cooling_rate
+
+        self.max = max_iterations
+
+    def acceptance_probability(self, best: float, candidate: float) ->float:
+        return np.exp((best - candidate) / self.T)
+
+    def stats(self, path: list) -> tuple:
+        total_dist = 0
+        total_time = 0
+        for i,j in zip(path, path[1:]): # For each pair of nodes in the path
+            total_dist += self.graph.get_dist(i.name, j.name)
+            total_time += self.graph.get_time(i.name, j.name)
+        return total_time, total_dist
+
+    """
+    Convert a list of potentially disconnected nodes to a path with virtual edges between nodes that are not connected.
+    """
+    def verify_path(self, path: list) -> list:
+        verified_path = [path[0]]
+        for i,j in zip(path, path[1:]): # For each pair of nodes in the path
+            a_star = AStar(self.graph, i, j)
+            verified_path.extend(a_star.find_path()[1:]) # Create Vertual edges between nodes in the path that are not connected
+        return verified_path
+
+    def two_opt_swap(self, path: list, i: int, k: int) -> list:
+        new_path = path[:i] # New path with the first i nodes
+        new_path.extend(reversed(path[i:k+1])) # Add the nodes from i to k in reverse order
+        new_path.extend(path[k+1:]) # Add the remaining nodes
+        return new_path
+
+    def anneal(self) -> tuple:
+        best_path_nodes = self.nodes
+        best_path = self.verify_path(best_path_nodes)
+        best_stats = self.stats(best_path)
+
+        current_path_nodes = best_path_nodes
+        current_path = best_path
+        current_stats = best_stats
+
+        iter = 0
+        while self.T >= self.stop_T and iter <= self.max: # Iterate until the temperature is below the stop temperature or the maximum iterations is reached
+            i = random.randint(1, len(current_path) - 2) # Random ints for i and j
+            k = random.randint(i+1, len(current_path) - 1)
+
+            new_path_nodes = self.two_opt_swap(current_path_nodes, i, k)
+            new_path = self.verify_path(new_path_nodes)
+            new_stats = self.stats(new_path)
+
+            # Could be moved into its own method with some OOP vooodoo
+            if new_stats[0] < current_stats[0]: # If new path has a lower time than the current path
+                current_path_nodes = new_path_nodes
+                current_path = new_path
+                current_stats = new_stats
+
+                if new_stats[0] < best_stats[0]: # If new path has a lower time than the best path
+                    best_path_nodes = new_path_nodes
+                    best_path = new_path
+                    best_stats = new_stats
+            else: # Otherwise use the acceptance probability, See https://en.wikipedia.org/wiki/Simulated_annealing for more information
+                if random.random() < self.acceptance_probability(current_stats[0], new_stats[0]):
+                    current_path_nodes = new_path_nodes
+                    current_path = new_path
+                    current_stats = new_stats
+
+            self.T *= self.cooling_rate
+            iter += 1
+
+        return best_path, best_stats
 
 
 # These commands run the code.
