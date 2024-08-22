@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import csv
 import random
 import math
+import numpy as np
 
 @dataclass(order=True)
 class PrioritizedItem:
@@ -86,128 +87,81 @@ class AStar:
 
         return None
         
-
-
 class SimulatedAnnealing:
-    def __init__(self, graph, start, radius, T=100.0, stop_temp=-1, timeout=100000, cooling_rate=0.995):
+    def __init__(self, graph, start, radius, initial_temp=100.0, stop_temp=1e-8, max_iterations=100000, cooling_rate=0.995):
         self.graph = graph
         self.start = start
-        self.radius = radius
-
-        # Constatnts for the simulated annealing algorithm
-        self.T = T
-        self.STOP_T = 1e-8 if stop_temp == -1 else stop_temp
+        self.nodes = self.graph.bfs(self.start, radius)
+        
+        self.T = initial_temp
+        self.stop_T = stop_temp
         self.cooling_rate = cooling_rate
 
-        self.nodes = set(self.graph.bfs(self.start, self.radius))
-        self.all_nodes = set(self.graph.nodes)
-        self.timeout_iter = timeout
+        self.max = max_iterations
 
-        self.iter = 0
+    def acceptance_probability(self, best, candidate):
+        return np.exp((best - candidate) / self.T)
 
-        self.best_stats = (float("inf"), float("inf"))
-        self.best_path = None
-
-        self.path_list = []
-
-    """
-    Get distance and time of path
-    list -> tuple
-    """
-    def path_stats(self, path):
+    def stats(self, path):
         total_dist = 0
         total_time = 0
+        for i,j in zip(path, path[1:]):
+            total_dist += self.graph.get_dist(i.name, j.name)
+            total_time += self.graph.get_time(i.name, j.name)
+        return total_time, total_dist
 
-        for i in range(len(path) - 1):
-            total_dist += self.graph.get_dist(path[i].name, path[i + 1].name)
-            total_time += self.graph.get_time(path[i].name, path[i + 1].name)
+    def verify_path(self, path):
+        verified_path = [path[0]]
+        for i,j in zip(path, path[1:]):
+            a_star = AStar(self.graph, i, j)
+            verified_path.extend(a_star.find_path()[1:])
 
-        return total_dist, total_time
+        return verified_path
 
-    def initial_solution(self):
-        """
-        Greedy algorithm to find the initial solution to the Travelling Salesman Problem.
-        """
-
-        solution = [self.start]
-
-        unvisited = set(self.nodes)
-        unvisited.remove(self.start)
-
-        while unvisited:
-            current = solution[-1]
-            current_neighbours = current.neighbours
-
-            # convert node names to node objects
-            current_neighbours = [self.graph.node_dict[node] for node in current_neighbours]
-
-            if unvisited.intersection(current_neighbours):
-                next_node = min(
-                        unvisited.intersection(current_neighbours),
-                        key=lambda x: self.graph.get_time(current.name, x.name),
-                        )
-                unvisited.remove(next_node)
-            else:
-                next_node = min(
-                        self.all_nodes.difference(unvisited),
-                        key=lambda x: self.graph.get_time(current.name, x.name),
-                        )
-                self.all_nodes.remove(next_node)
-
-            solution.append(next_node)
-
-        path_stats = self.path_stats(solution)
-        if path_stats[1] < self.best_stats[1]:
-            self.best_stats = path_stats
-            self.best_path = solution
-
-        self.path_list.append(path_stats)
-        return solution, path_stats
-
-    def prob_accept(self, candidate):
-        """
-        Probability of accepting a candidate solution based on the current temperature and the difference in cost.
-        See: https://en.wikipedia.org/wiki/Simulated_annealing#Acceptance_probabilities
-        """
-        return math.exp(-abs(candidate - self.best_stats[1]) / self.T)
-
-    def accept(self, candidate, stats):
-        """
-        Accept the candidate solution if it is better than the current solution.
-        If the candidate solution is worse, accept it with a probability based on the current temperature.
-        """
-
-        if stats[1] < self.current_stats[1]:
-            self.current_solution = candidate
-            self.current_stats = stats
-            if stats[1] < self.best_stats[1]:
-                self.best_stats = stats
-                self.best_path = candidate
-        else:
-            if random.random() < self.prob_accept(stats[1]):
-                self.current_solution = candidate
-                self.current_stats = stats
-
+    def two_opt_swap(self, path, i, k):
+        new_path = path[:i]
+        new_path.extend(reversed(path[i:k+1]))
+        new_path.extend(path[k+1:])
+        return new_path
 
     def anneal(self):
-        self.current_path, self.current_stats = self.initial_solution()
+        best_path_nodes = self.nodes
+        best_path = self.verify_path(best_path_nodes)
+        best_stats = self.stats(best_path)
 
-        while self.T >= self.STOP_T and self.iter < self.timeout_iter:
-            path = list(self.current_path)
-            l = random.randint(2, len(path) - 1)
-            i = random.randint(0, len(path) - l)
+        current_path_nodes = best_path_nodes
+        current_path = best_path
+        current_stats = best_stats
 
-            path[i : (i + l)] = reversed(path[i : (i + l)])
+        iter = 0
+        while self.T >= self.stop_T and iter <= self.max:
+            i = random.randint(1, len(current_path) - 2)
+            k = random.randint(i+1, len(current_path) - 1)
 
-            self.accept(path, self.path_stats(path))
+            new_path_nodes = self.two_opt_swap(current_path_nodes, i, k)
+            new_path = self.verify_path(new_path_nodes)
+            new_stats = self.stats(new_path)
+
+            if new_stats[0] < current_stats[0]:
+                current_path_nodes = new_path_nodes
+                current_path = new_path
+                current_stats = new_stats
+
+                if new_stats[0] < best_stats[0]:
+                    best_path_nodes = new_path_nodes
+                    best_path = new_path
+                    best_stats = new_stats
+            else:
+                if random.random() < self.acceptance_probability(current_stats[0], new_stats[0]):
+                    current_path_nodes = new_path_nodes
+                    current_path = new_path
+                    current_stats = new_stats
 
             self.T *= self.cooling_rate
-            self.iter += 1
+            iter += 1
 
-        print(f"self.iter: {self.iter}")
-        print(f"self.T: {self.T}")
+        return best_path, best_stats
 
-        return self.best_path, self.best_stats
 
 class Node:
     def __init__(self, name, pop, income, lat, long):
