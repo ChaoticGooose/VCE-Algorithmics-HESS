@@ -1,243 +1,278 @@
 # Algorithmics SAT Part 3: Advanced Algorithmic Design
+
 ## 1. Improved Algorithm design
-### TSP Algorithm (Simulated Annealing)
-```
-Algorithm SimulatedAnnealing(graph, start, radius, T=100.0, stop_temp=-1, timeout=100000, cooling_rate=0.995)
-// Input graph, start node, and radius for the simulated annealing algorithm.
-// Initializes the parameters and performs the simulated annealing process to find an optimized path.
-
-initialize T to T
-initialize STOP_T to 1e-8 if stop_temp is -1, otherwise stop_temp
-initialize cooling_rate to cooling_rate
-
-nodes := set of nodes within the radius from the start node, found using BFS
-all_nodes := set of all nodes in the graph
-timeout_iter := timeout
-iter := 0
-
-best_stats := (∞, ∞)
-best_path := None
-
-path_list := empty list
-
-Function path_stats(path)
-// Calculates the total distance and time for the given path.
-
-total_dist := 0
-total_time := 0
-
-for i from 0 to length(path) - 2 do
-    total_dist := total_dist + distance between path[i] and path[i+1]
-    total_time := total_time + time between path[i] and path[i+1]
-end for
-
-return (total_dist, total_time)
-end Function
-
-Function initial_solution()
-// Uses a greedy algorithm to find the initial solution to the Travelling Salesman Problem.
-
-solution := [start]
-unvisited := set of nodes that are within the radius, excluding the start node
-
-while unvisited is not empty do
-    current := last node in solution
-    current_neighbours := neighbours of current converted to node objects
-
-    if there are unvisited nodes in current_neighbours then
-        next_node := node in unvisited and current_neighbours with minimum travel time from current
-        remove next_node from unvisited
-    else
-        next_node := node in all_nodes excluding unvisited with minimum travel time from current
-        remove next_node from all_nodes
-    end if
-
-    append next_node to solution
-end while
-
-path_stats := path_stats(solution)
-
-if path_stats[1] < best_stats[1] then
-    best_stats := path_stats
-    best_path := solution
-end if
-
-append path_stats to path_list
-
-return (solution, path_stats)
-end Function
-
-Function prob_accept(candidate)
-// Calculates the probability of accepting a candidate solution based on the current temperature and the difference in cost.
-
-return exp(-abs(candidate - best_stats[1]) / T)
-end Function
-
-Function accept(candidate, stats)
-// Accepts the candidate solution if it is better than the current solution.
-// If the candidate solution is worse, accepts it with a probability based on the current temperature.
-
-if stats[1] < current_stats[1] then
-    current_solution := candidate
-    current_stats := stats
-    if stats[1] < best_stats[1] then
-        best_stats := stats
-        best_path := candidate
-    end if
-else
-    if random value < prob_accept(stats[1]) then
-        current_solution := candidate
-        current_stats := stats
-    end if
-end if
-end Function
-
-Function anneal()
-// Performs the simulated annealing process to optimize the path.
-
-current_path, current_stats := initial_solution()
-
-while T >= STOP_T and iter < timeout_iter do
-    path := copy of current_path
-    l := random integer between 2 and length(path) - 1
-    i := random integer between 0 and length(path) - l
-
-    reverse the sublist of path from i to (i + l)
-
-    new_stats := path_stats(path)
-    accept(path, new_stats)
-
-    T := T * cooling_rate
-    iter := iter + 1
-end while
-
-print iter
-print T
-
-return (best_path, best_stats)
-end Function
-
-end Algorithm
-```
-
-This TSP algorithm utilises the Simulated Annealing approch for finding an optimal solution to the Traveling Salesman Problem. The algorithm starts by initializing the parameters and finding the nodes within the specified radius from the start node using Breadth-First Search (BFS), alike the origional Brute force algorithm. It then uses a greedy, Nearest Neighbour, Algorithm to find the initial solution to the TSP, Simply picking the next closest node from the start. The simulated annealing process is performed to optimize the path by accepting candidate solutions based on the current temperature and the difference in cost. The algorithm iterates until the temperature reaches a given stopping temperature or a given timeout limit (default 100,000)  is reached. The final optimized path and its statistics are then returned as the output.
-
 
 ### A* Algorithm (SSSP)
-```
+
+A* is a pathfinding algorithm used to solve the Single Source Shortest Path problem (SSSP). It works by maintaining a priority queue of nodes to explore, starting from the initial node and expanding outwards. A* uses a heuristic function to estimate the remaining distance to the goal, which helps guide the search towards the target more efficiently than a simple breadth-first search. At each step, A* selects the most promising node (based on the sum of the cost to reach that node and the estimated cost to the goal) and explores its neighbors. This process continues until the goal is reached or all possible paths have been exhausted.
+
+```python
 Algorithm AStar(graph, start, target)
-// Input graph, start node, and target node for the A* algorithm.
-// Initializes the parameters and performs the A* search to find the shortest path.
+# Input graph, start node, and target node for the A* algorithm.
+# Initializes the parameters and performs the A* search to find the shortest path.
 
-Class PathNode(node)
-// A class to represent a node in the path with its cost values.
+    Class PathNode(node) # O(1) to init
+        # A class to represent a node in the path with its cost values.
+        initialize node to node
+        initialize g (cost from start to node) to ∞
+        initialize h (heuristic cost from node to target) to ∞
+        initialize f (total cost) to ∞
+    end Class
 
-initialize node to node
-initialize g (cost from start to node) to ∞
-initialize h (heuristic cost from node to target) to ∞
-initialize f (total cost) to ∞
-end Class
 
-Initialize graph to graph
-start_node := PathNode(start)
-target_node := target
+    # Initialization - O(1)
+    Initialize graph to graph
+    start_node := PathNode(start)
+    target_node := target
 
-start_node.g := 0
-start_node.h := heuristic(start_node.node)
-start_node.f := start_node.g + start_node.h
+    start_node.g := 0
+    start_node.h := heuristic(start_node.node)
+    start_node.f := start_node.g + start_node.h
 
-open := PriorityQueue to hold nodes to be evaluated
-closed := set to hold nodes already evaluated
+    open := PriorityQueue to hold nodes to be evaluated
+    closed := set to hold nodes already evaluated
 
-parent := dictionary to store the parent of each node
+    parent := dictionary to store the parent of each node
 
-path := empty list to store the final path
-path_found := False
+    path := empty list to store the final path
+    path_found := False
 
-Function heuristic(node)
-// Calculates the heuristic cost (h) from the current node to the target node.
+    Function heuristic(node) # O(1)
+        # Calculates the heuristic cost (h) from the current node to the target node.
 
-return haversine distance between node and target_node
-end Function
+        return haversine distance between node and target_node
+    end Function
 
-Function find_path()
-// Performs the A* search algorithm to find the shortest path from start to target.
+    Function find_path()
+    # Performs the A* search algorithm to find the shortest path from start to target.
 
-insert start_node into open with priority start_node.f
+        insert start_node into open with priority start_node.f # O(log(V)) From queue lib
 
-while open is not empty do
-    current := node in open with the lowest f value
+        while open is not empty do # O(V)
+            current := node in open with the lowest f value # O(log(V)) From queue lib
 
-    if current.node equals target_node then
-        path_found := True
-        break
-    end if
+            if current.node equals target_node then
+                path_found := True
+                break
+            end if
 
-    add current.node to closed
+            add current.node to closed # O(1)
 
-    for each neighbour in current.node.neighbours do
-        neighbour_node := PathNode(neighbour node from graph)
+            for each neighbour in current.node.neighbours do # O(E/V) on average depends on heuristic
+                neighbour_node := PathNode(neighbour node from graph)
 
-        if neighbour_node in closed then
-            continue to next neighbour
-        end if
+                if neighbour_node in closed then
+                    continue to next neighbour
+                end if
 
-        g := current.g + distance between current.node and neighbour_node
-        h := heuristic(neighbour_node.node)
-        f := g + h
+                g := current.g + distance between current.node and neighbour_node
+                h := heuristic(neighbour_node.node)
+                f := g + h
 
-        if f < neighbour_node.f then
-            neighbour_node.g := g
-            neighbour_node.h := h
-            neighbour_node.f := f
+                if f < neighbour_node.f then
+                    neighbour_node.g := g
+                    neighbour_node.h := h
+                    neighbour_node.f := f
 
-            set parent of neighbour_node to current.node
+                    set parent of neighbour_node to current.node
 
-            insert neighbour_node into open with priority neighbour_node.f
-        end if
-    end for
-end while
-
-if path_found then
-    current := target_node
-    while current is not start_node.node do
-        insert current at the beginning of path
-        current := parent[current]
+                    insert neighbour_node into open with priority neighbour_node.f
+                end if
+            end for
     end while
 
-    insert start_node.node at the beginning of path
+    if path_found then
+      # Reconstruct path - O(V) in worst case
+        current := target_node
+        while current is not start_node.node do
+            insert current at the beginning of path
+            current := parent[current]
+        end while
 
-    return path
-end if
+        insert start_node.node at the beginning of path
 
-return None
-end Function
+        return path
+    end if
+    else
+        return None
+    end else
+
+
+    end Function
+end Algorithm
+```
+
+### Analysis
+
+1. The main loop (while open is not empty) can potentially iterate over all vertices in the graph. *O(V)*
+2. Within each iteration of this main loop, we perform these key operations:
+   1. Extract the node with the lowest `f` value from the open set (priority queue): *O(log(V))*
+   2. Process each neighbor of the current node: *O(E/V)* on average, depending on the heuristic accuracy
+   3. For each neighbor, we might insert it into the open set: *O(log(V))*
+
+Combining these, for each iteration of the main loop, we have:
+$O(\log(V)) + O(E/V) * O(\log(V)) = O(\log(V) + (E/V)*\log(V))$
+
+Since the main loop iterates a maximum of `V` times we multiply this all by `V`:
+$O(V) * O(\log(V) + (E/V)\log(V)) = O(V\log(V) + E*\log(V))$
+
+The term $E*\log(V)$ dominates $V*\log(V)$ (since $E \geq V-1$ in a connected graph), so we can simplify this to: $O(E*\log(V))$
+
+### Simulated Annealing / 2-Opt (TSP)
+
+A 2-Opt + Simulated Annealing algorithm combines local search with a probabilistic approach to solve optimization problems. It starts with an initial solution and iteratively applies 2-Opt moves, which involve swapping two edges to create a new path. The algorithm always accepts improvements, but also allows some non-improving moves based on a temperature parameter that decreases over time. This balance between exploration and exploitation helps the algorithm escape local optima and potentially find better global solutions. As the temperature cools, the algorithm becomes more selective, focusing on refinements to the current best solution.
+
+```python
+Algorithm SimulatedAnnealing(graph, start, radius, initial_temp, stop_temp, max_iterations, cooling_rate)
+    # Initializes the parameters and performs the simulated annealing algorithm to find an optimized path.
+
+    # Initialization - O(1)
+    Initialize graph to graph
+    Initialize start to start
+    Initialize nodes to BFS(graph, start, radius) # O(V+E)
+    Initialize T to initial_temp
+    Initialize stop_T to stop_temp
+    Initialize cooling_rate to cooling_rate
+    Initialize max to max_iterations
+
+    Function acceptance_probability(best, candidate) # O(1)
+        # Calculates the acceptance probability for a new solution.
+        return exp((best - candidate) / T)
+    end Function
+
+    Function stats(path) # O(n) where n is the length of the path
+        # Calculates the total distance and time for a given path.
+        Initialize total_dist to 0
+        Initialize total_time to 0
+        for each pair (i, j) in path do
+            total_dist := total_dist + graph.get_dist(i.name, j.name)
+            total_time := total_time + graph.get_time(i.name, j.name)
+        end for
+        return total_time, total_dist
+    end Function
+
+    Function verify_path(path) # O(VE*log(V))
+        # Converts a list of potentially disconnected nodes to a path with virtual edges.
+        Initialize verified_path to [path[0]]
+        for each pair (i, j) in path do
+            a_star := AStar(graph, i, j)
+            Append a_star.find_path()[1:] to verified_path
+        end for
+        return verified_path
+    end Function
+
+    Function two_opt_swap(path, i, k) # O(1), List manipulations should happen using pointers
+        # Performs a 2-opt swap on the given path.
+        Initialize new_path to path[0] to path[i]
+        Append reverse(path[i] to path[k+1])to new_path
+        Append remaining nodes in path to new_path
+        return new_path
+    end Function
+
+    Function anneal()
+        # Performs the simulated annealing algorithm to find an optimized path.
+        Initialize best_path_nodes to nodes
+        Initialize best_path to verify_path(best_path_nodes)
+        Initialize best_stats to stats(best_path)
+        Initialize current_path_nodes to best_path_nodes
+        Initialize current_path to best_path
+        Initialize current_stats to best_stats
+        Initialize iter to 0
+
+        while T >= stop_T and iter <= max do # O(I), Runs Max Iterations
+            i := random integer between 1 and length(current_path) - 2
+            k := random integer between i+1 and length(current_path) - 1
+            new_path_nodes := two_opt_swap(current_path_nodes, i, k)
+            new_path := verify_path(new_path_nodes)
+            new_stats := stats(new_path)
+
+            if new_stats[0] < current_stats[0] then
+                current_path_nodes := new_path_nodes
+                current_path := new_path
+                current_stats := new_stats
+                if new_stats[0] < best_stats[0] then
+                    best_path_nodes := new_path_nodes
+                    best_path := new_path
+                    best_stats := new_stats
+                end if
+            else
+                if random() < acceptance_probability(current_stats[0], new_stats[0]) then
+                    current_path_nodes := new_path_nodes
+                    current_path := new_path
+                    current_stats := new_stats
+                end if
+            end if
+
+            T := T * cooling_rate
+            iter := iter + 1
+        end while
+
+        return best_path, best_stats
+    end Function
 
 end Algorithm
 ```
 
-This A* algorithm is used for finding the shortest path from a start node to a target node in a graph. The algorithm initializes the parameters and uses a priority queue to hold nodes to be evaluated based on their total cost (f). It calculates the heuristic cost (h) from the current node to the target node using the Haversine distance. The A* search algorithm iterates until the target node is reached or all nodes are evaluated. The final path is reconstructed by tracing back the parent nodes from the target node to the start node. The algorithm returns the shortest path if found, otherwise None.
+### Analysis
+
+1. Initialization:
+   1. BFS is performed once: *O(V + E)*
+2. The main annealing loop can iterate up to *max_iterations* or until temperature reaches stop_T. We will let this be O(i)
+3. Within each iteration of the main loop, we perform these key operations:
+   1. Random number generation and two_opt_swap: *O(1)*
+   2. verify_path: *O(n * E * log(V))*, where n is the path length (This is because A* is called potentially n times, each with complexity O(E * log(V)))
+   3. stats:  *O(n)*
+   4. Comparisons and probability calculations: *O(1)*
+4. Combining these, for each iteration of the main loop, we have: $O(1) + O(n * E * \log(V)) + O(n) + O(1) = O(n * E * \log(V))$
+5. Since the main loop iterates I times, we multiply this by I: $O(I) * O(n * E * \log(V)) = O(I * n * E * \log(V))$
+6. Combining the initialization with the main loop: $O(V + E) + O(I*n*E * \log(V))$
+
+The term $I*n*E*\log(V)$ dominates $V+E$, so we can consider the overall time complexity to be: $O(I*n*E*\log(V))$
 
 ## 2. Advanced Algorithms VS Naive Algorithms
+
 ### Comparison of TSP Algorithms
-This new algorithm improves on the original brute force algorithm through the use of Simulated Annealing, which allows for a solution to be found in fewer iterations at the cost of some accuracy. Simulated Annealing is a metaheuristic algorithm, inspired by metalwork, that uses a probabilistic approach to find the global optimum. The algorithm finds a inital solution that may not be optimal, then iteratively explores neighboring solutions by making small changes to the current solution. If a new solution is better, it is accepted; otherwise, it might still be accepted based on a probability that decreases with temperature, simulating the process of annealing in metalwork. This probability is given by the equation $(e^{-\frac{|candidate - best|}{T}})$, where T is the current temperature, candidate is the cost of the new solution, and best is the cost of the current best solution. This probability allows the algorithm to escape local minima in search of a globally optimal solution. 
 
-Due to the nature of the algorithm though, it is not guaranteed to find the most optimal solution contained in the graph, even if let run for an infinite amount of time. It does not guarantee the most optimal solution because the algorithm's success depends on the cooling schedule and random transitions. As the temperature decreases, the algorithm becomes less likely to accept worse solutions, potentially trapping it in a local minimum rather than the global minimum.  Therefore, while it increases the likelihood of finding an optimal or near-optimal solution, it cannot ensure that the absolute best solution will always be found.
+To improve upon the previous brute force algorithm a combination 2-Opt and Simulated Annealing are used. The original brute force method utilized the Floyd-Warshall algorithm for all-pairs shortest paths to create a set of "Virtual Edges" -- Making the graph act as if it was complete -- before generating all possible permutations to find the optimal tour. This approach guarantees finding the best solution but at a significant computational cost. Its time complexity is $O(n^3 + n!)$, making it impractical for all but the smallest problem instances, typically limited to 10-12 nodes. The memory usage is more modest, with a space complexity of $O(n^2)$ primarily due to the distance and predecessor matrices.
 
-In contrast, the brute-force approach, implemented previously, uses an exaustive search that considers all possible permutations of the nodes, excluding the start node, and evaluates each path's total distance and time. This means that the brute force algorithm is always gaurenteed to find the most optimal solution possible, at the cost of processing time and memory requirements. This also means that the Brute Force algorithm is deterministic, and will always return the same result given the same input, unlike the Simulated Annealing algorithm which may return different results on different runs.
+In contrast, the second algorithm combines Simulated Annealing with the 2-opt heuristic, offering a more scalable approach to the TSP. This method sacrifices the guarantee of optimality for the ability to handle much larger problem instances. In most cases though it finds a path that is optimal or near optimal. The time complexity of this algorithm is $O(I*n*E*\log(V))$, where I is the number of iterations, n is the number of nodes, E is the number of edges, and V is the number of vertices. This complexity arises from the combination of the 2-opt swap operations, path verification using A* algorithm, and the overall iterative nature of Simulated Annealing. While still computationally intensive, this approach is far more manageable than the factorial growth of the brute force method, especially for larger problem sizes.
 
-(Where V is the number of nodes and E is the number of edges in the graph)
-It is also useful in this comparison to note the Time and Space complexities of these algorithms. As established in SAT Part 2, The implimentation of Brute Force TSP previously was `O(V+E+V!)` and a space complexity of `O(V)`, as at any given point the algorithm only stores the best and current permutation of the path. As for the Simulated Annealing TSP algorithm, the time complexity can be difficult to express precisely due to its heuristic nature but generally performs much better in practice than brute-force approaches. The complexity depends on factors like the number of iterations, the cooling rate, and the size of the problem (number of nodes), but is typically considered to be `O(V)` or `O(V^2)`. The space complexity is much more straight forward, being `O(V)`, as it only requires the storage of the current path and the best path found so far.
-
-Through this analysis, it is shown that the Simulated Annealing algorithm is a more efficient and practical approach for solving the TSP problem in real-world scenarios, where the goal is to find a near-optimal solution in a reasonable amount of time. The algorithm is much more scalable and can handle much larger road networks, being reasonably scalable to the entireity of Australia, if the Itchy Nose Syndrome had spread further. Although the Simulated Annealing Algorithm may not always find the most optimal solution, on average it will find a solution that is close to the optimal solution in a much shorter time than the brute force algorithm and in very large graphs, the amount of time to find the most optimal solution can be more significant than the difference between the optimal and near-optimal solutions.
+The key differences between these algorithms lie in their applicability and performance characteristics. The brute force method is ideal for situations where finding the absolute best solution is critical and the problem size is very small. It's also more straightforward to implement and verify. On the other hand, the Simulated Annealing approach is far more flexible and can handle much larger datasets. It allows for a trade-off between solution quality and computation time through parameter tuning, making it suitable for a wide range of practical applications.
 
 ### Comparison of SSSP Algorithms
-The A* algorithm is a widely used pathfinding algorithm that combines aspects of Dijkstra's algorithm and a heuristic approach to efficiently find the shortest path from a start node to a target node in a graph. A* works by maintaining a priority queue of nodes to explore, prioritizing nodes based on an estimation of their cost, which is the sum of the path cost from the start node (g) and an estimated cost to the target node (h), known as the heuristic. The algorithm selects the node with the lowest total cost ($f=g+h$) and explores its neighbors, updating the cost and path information as necessary. If a neighbor provides a lower cost path, it is added to the priority queue for further exploration. The heuristic function is crucial in guiding the search, and its accuracy directly affects the efficiency of the algorithm. In this implementation, the heuristic is based on the Haversine distance, a measure of the shortest distance between two points on a sphere, making it well-suited for this geographical applications.
 
-The A* algorithm guarantees the shortest path if the heuristic is admissible, meaning it never overestimates the true cost to reach the target. The complexity of the A* algorithm largely depends on the accuracy of the heuristic and the number of nodes in the graph. In the worst case, its time complexity is `O(|E|log(|V|))` where E is the number of edges and V is the number of verticies, similar to Dijkstra’s algorithm, but with better performance in practice due to the heuristic guiding the search. The space complexity is also significant, as A* must keep track of all explored nodes and their costs, leading to O(V) space complexity where V is the number of nodes, again alike Dijikstra.
+The A* and Dijkstra's algorithms differ significantly in their approach to pathfinding. A* employs a heuristic function to estimate the cost from the current node to the target, which allows it to make informed decisions about which nodes to explore next. This heuristic-guided search often results in A* being more efficient for finding a path between two specific points, especially in large graphs. Dijkstra's algorithm, on the other hand, does not use a heuristic and explores nodes based solely on their distance from the start.
 
-In comparison, Dijkstra's algorithm is a more straightforward approach to finding the shortest path in a graph. It does not use a heuristic and instead explores all possible paths from the start node, expanding outward uniformly. This means that in practice it can be slower than A* for large graphs, as it does not have the heuristic to guide the search towards the target.
+In terms of efficiency, A* has a similar time complexity to A*, being $O(E*\log(V))$ as stated above, in comparison to $O(V+E\log(V))$. This means that A* generally outperforms Dijkstra's algorithm when searching for a single target, as it can often reach the goal while exploring fewer nodes. However, this efficiency comes at the cost of potentially higher memory usage in worst-case scenarios. In practice, Dijkstra's algorithm, while potentially slower for single-target searches, is more memory-efficient and excels at finding shortest paths from one node to all others, although this isn't relevant to the SSSP problem.
 
-Dijkstra's algorithm has a time complexity of O(V + E log V), making it relatively efficient for dense graphs where every node is connected to many others. Its space complexity is also O(V) due to the need to store distances and path information for all nodes. While both A* and Dijkstra’s algorithms are deterministic and guaranteed to find the optimal solution, A* is generally preferred in scenarios where a heuristic can significantly reduce the search space, leading to faster solutions, especially in large, complex graphs.
+Both algorithms guarantee optimal paths under certain conditions. A* finds the optimal path if its heuristic function is admissible (never overestimates the cost), while Dijkstra's algorithm always finds the optimal path to all nodes. This makes Dijkstra's algorithm useful where an admissible Heuristic doesn't exist.
 
-For the most part it is pretty inconsequential to which algorithm is used, as the Single Source Shortest Path problem is a tractable problem. The time complexities of both algorithms are similar, and the space complexities are the same. The main difference between the two algorithms is the heuristic used in A*, which can significantly reduce the search space and improve performance in practice. In the case of the Itchy Nose Syndrome, the A* algorithm would be the preferred choice due to the geographical nature of the problem and the need to find the shortest path efficiently.
+## 3. Conclusions in terms of Pangobat Infestation
+
+### Traveling Salesman Problem
+
+In the context of a Pangobat infestation in Victoria and the need to efficiently distribute vaccines for the INS disease, we can draw the following conclusions about which algorithm would be more suitable.
+
+Simulated Annealing algorithm with 2-opt would likely be the better choice for this real-world scenario. Victoria has a large number of towns and cities spread across a large area, which would translate to a very large number of nodes in our graph. The brute force algorithm's factorial time complexity would make it impractical for handling a problem of this scale, potentially taking years to compute a solution.
+
+The brute force algorithm, with its factorial time complexity $O(n!)$, quickly becomes intractable as the number of locations increases. For instance, with just 20 towns, there are about $2.43*10^{18}$ possible routes to evaluate. This number grows astronomically with each additional location, making the problem computationally infeasible for any realistic number of towns in Victoria.
+
+The Simulated Annealing approach, on the other hand, trades optimality for tractability. While it doesn't guarantee finding the optimal solution, it can find good approximate solutions in polynomial time. Its time complexity of $O(I*n*E*\log(V))$ makes it much more tractable for larger problem instances. The potential inaccuracy of this approach is negligible in comparison to the time it may take to find an exact solution.
+
+For these reasons, Simulated Annealing is a no-brainer. There is almost 0 advantages to the exact brute force method, which may take many decades to complete on a large number of nodes.
+
+### Single Source Shortest Path
+
+The Pangobat infestation and spread of Itchy Nose Syndrome requires a fast response to contain each outbreak, for this use, the A* algorithm emerges as the superior choice for routing response teams. Its heuristic-guided approach allows for quick path finding, which is crucial in emergency situations where response time is critical to contain threats. While Dijkstra's algorithm guarantees the absolute shortest path, the speed and efficiency of A* in large-scale scenarios make it more practical for real-world application.
+
+Both A* and Dijkstra's algorithms have similar time complexities, being $O(E*\log(V))$ and $O(V+E\log(V))$ respectively. This means that they should theoretically run in roughly the same time. However, in practice, A* often performs significantly better, especially in large-scale scenarios like the potential nationwide Pangobat infestation.
+
+The key to A*'s superior performance lies in its heuristic function. While the worst-case time complexity of A* matches that of Dijkstra's algorithm, a well-designed heuristic can dramatically reduce the number of nodes that need to be explored. In the context of geographical pathfinding, the Haversine distance heuristic provides a good estimate of the remaining distance to the goal, allowing A* to focus its search more efficiently.
+
+A*'s adaptability is a key advantage. Its heuristic function, currently using Haversine distance, can be easily modified to account for various factors such as terrain, road conditions, or even infestation density. This flexibility allows for more nuanced and realistic path planning, which may be significant if the infestation were to spread from Victoria to other regions or even overseas.
+
+This all culminates in A* being significantly faster to complete the problem on the given graph, as well as being much more scalable if the infestation were to spread outside of Victoria. This means that the obvious choice for which algorithm to use is A*.
+
+## 4. Notes
+
+1. The TSP algorithm can be improved by a refactor of the A* code using Dynamic programming to avoid recomputations
